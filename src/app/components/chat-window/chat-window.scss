@@ -1,0 +1,265 @@
+/* Estrutura principal */
+:host {
+  display: flex;
+  flex: 1;
+  min-height: 0; 
+  min-width: 0; 
+  padding: 1.5rem; 
+  box-sizing: border-box;
+}
+
+.chat-window-wrapper {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 12px; 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  overflow: hidden; 
+}
+
+.chat-prompt {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #888;
+  font-size: 1.2rem;
+}
+
+/* Header */
+.header {
+  padding: 1.25rem 1.5rem;
+  background: #ffffff; 
+  border-bottom: 1px solid #eee; 
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0; 
+  
+  h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+}
+
+.header, .intake-data {
+  flex-shrink: 0;
+}
+
+.header {
+  .end-chat-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    &:hover { background-color: #c82333; }
+  }
+  .chat-closed-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #28a745; 
+  }
+}
+
+/* Bloco de Intake (Dados do Cliente) */
+.intake-data {
+  background: #f7f9fc;
+  border-bottom: 1px solid #eee;
+  padding: 1rem 1.5rem;
+  flex-shrink: 0; 
+}
+
+/* Cabeçalho da seção de Intake (com botão Editar) */
+.intake-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+
+  h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: #333;
+  }
+
+  .edit-btn {
+    background: transparent;
+    border: none;
+    color: #007bff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.25rem;
+    &:hover { color: #0056b3; }
+  }
+}
+
+/* Lista de visualização (ul) */
+.intake-list {
+  list-style: none; 
+  padding: 0; 
+  margin: 0; 
+  display: flex; 
+  flex-wrap: wrap; 
+  
+  li { 
+    margin-right: 1.5rem; 
+    font-size: 0.9em; 
+    color: #333; 
+    margin-top: 0.5rem;
+
+    // --- A CORREÇÃO ESTÁ AQUI ---
+    text-transform: uppercase; // Força o texto a ser maiúsculo
+    // --- FIM DA CORREÇÃO ---
+  }
+}
+
+/* Formulário de Edição */
+.intake-edit-form {
+  
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+    gap: 1rem;
+  }
+
+  .form-group {
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 0.25rem;
+    }
+
+    input[type="text"], 
+    select {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      box-sizing: border-box;
+      border: 1px solid #ddd;
+      border-radius: 6px; 
+      font-size: 0.9rem;
+      font-family: 'Manrope', sans-serif;
+      // NÃO colocamos 'uppercase' aqui para o admin poder editar o texto original
+      &:focus {
+        outline: none;
+        border-color: #0e2746;
+        box-shadow: 0 0 0 3px rgba(14, 39, 70, 0.1);
+      }
+    }
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
+
+    button {
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-cancel {
+      background-color: #f0f0f0;
+      color: #555;
+      &:hover { background-color: #e0e0e0; }
+    }
+    .btn-save {
+      background-color: #28a745; 
+      color: white;
+      &:hover { background-color: #218838; }
+    }
+  }
+}
+
+/* Área de scroll */
+.messages-area {
+  flex: 1; 
+  overflow-y: auto; 
+  padding: 1.5rem;
+  min-height: 0; 
+  background: #ffffff; 
+}
+
+.messages-container {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Balões de mensagem */
+.message-bubble {
+  padding: 0.75rem 1rem; 
+  border-radius: 18px;
+  margin-bottom: 8px;
+  max-width: 70%;
+  line-height: 1.5;
+
+  p { margin: 0; }
+  
+  &.client {
+    background: #e9e9eb; 
+    color: #333;
+    align-self: flex-start;
+    border-radius: 18px 18px 18px 5px; 
+  }
+  
+  &.admin {
+    background: #0e2746; 
+    color: white;
+    align-self: flex-end;
+    border-radius: 18px 18px 5px 18px; 
+  }
+}
+
+/* Formulário de chat */
+.message-form {
+  border-top: 1px solid #eee;
+  padding: 1.5rem;
+  background: #f7f9fc; 
+  display: flex;
+  flex-shrink: 0; 
+
+  input {
+    flex: 1;
+    padding: 0.9rem 1.25rem; 
+    border: 1px solid #ddd;
+    border-radius: 30px; 
+    margin-right: 1rem;
+    font-size: 1rem;
+    font-family: 'Manrope', sans-serif;
+    transition: all 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: #0e2746;
+      box-shadow: 0 0 0 4px rgba(14, 39, 70, 0.1);
+    }
+  }
+
+  button {
+    padding: 0 1.5rem;
+    border: none;
+    background: #0e2746; 
+    color: white;
+    border-radius: 30px; 
+    cursor: pointer;
+    font-weight: 600;
+
+    &:hover { background: #0b203b; }
+    &:disabled { background: #ccc; }
+  }
+}

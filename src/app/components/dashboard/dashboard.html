@@ -1,0 +1,42 @@
+<style>
+  .dashboard-layout {
+    display: flex;
+    height: 100vh;
+  }
+  .sidebar {
+    width: 30%;
+    border-right: 1px solid #ccc;
+    display: flex;
+    flex-direction: column;
+  }
+  .chat-area {
+    width: 70%;
+  }
+  .sidebar-header, .chat-header {
+    padding: 10px;
+    background: #f0f0f0;
+    border-bottom: 1px solid #ccc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+</style>
+
+<div class="dashboard-layout">
+  
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h3>Conversas</h3>
+      <button (click)="logout()">Sair</button>
+    </div>
+    <app-conversation-list 
+      (conversationSelected)="onConversationSelected($event)">
+    </app-conversation-list>
+  </div>
+
+  <div class="chat-area">
+    <app-chat-window [conversationId]="selectedConversationId">
+    </app-chat-window>
+  </div>
+
+</div>

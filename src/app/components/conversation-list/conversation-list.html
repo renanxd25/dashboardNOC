@@ -1,0 +1,102 @@
+<div class="export-section">
+  <h4>Exportar Clientes (Excel)</h4>
+  
+  <button (click)="exportAll()" [disabled]="isLoading()">
+    {{ isLoading() ? 'Exportando...' : 'Exportar Todos' }}
+  </button>
+
+  <div class="date-range">
+    <h5>Exportar por Período</h5>
+    <div class="date-inputs">
+      <div>
+        <label for="startDate">De:</label>
+        <input type="date" #startDate>
+      </div>
+      <div>
+        <label for="endDate">Até:</label>
+        <input type="date" #endDate>
+      </div>
+    </div>
+    <button (click)="exportByDateRange(startDate.value, endDate.value)" [disabled]="isLoading()">
+      {{ isLoading() ? 'Exportando...' : 'Exportar Período' }}
+    </button>
+  </div>
+</div>
+
+<div class="lists-wrapper">
+  
+  <h4 class="list-header">Fila de Atendimento</h4>
+  @if (queuedConversations$ | async; as conversations) {
+    @if (conversations.length === 0) {
+      <div class="empty-list-label">Nenhum item na fila.</div>
+    }
+    @for (convo of conversations; track convo.id) {
+      <ul class="convo-list">
+        <li 
+          class="convo-item"
+          (click)="selectConversation(convo.id, 'queued')"
+          [class.selected]="convo.id === currentSelectedId">
+          
+          <div class="item-header">
+            <h4>{{ convo.userName }}</h4>
+            
+            @if(convo.intakeData) { 
+            @switch (convo.intakeData.opcaoAtendimento) {
+                @case ('COMISSIONAMENTO') { <span class="service-tag tag-red">(Comissionamento)</span> }
+                @case ('VERIFICAR COMUNICAÇÃO') { <span class="service-tag tag-blue">(Verificar Com.)</span> }
+                @case ('CADASTRO DE PORTA HUGHES') { <span class="service-tag tag-green">(Cadastro Hughes)</span> }
+                @case ('TROCA DE PORTA GPRS') { <span class="service-tag tag-orange">(Troca GPRS)</span> }
+                @case ('TROCA DE TECNOLOGIA DE COMUNICAÇÃO') { <span class="service-tag tag-purple">(Troca Tec.)</span> }
+                @case ('VOLTAR COMUNICAÇÃO') { <span class="service-tag tag-yellow">(Voltar Com.)</span> }
+                @default { <span class="service-tag tag-grey">(Outro)</span> }
+              }
+            }
+          </div>
+          
+          <p>{{ convo.lastMessage.text }}</p>
+        </li>
+      </ul>
+    }
+  } @else {
+    <div class="loading">Carregando fila...</div>
+  }
+
+
+  <h4 class="list-header">Meus Atendimentos</h4>
+  @if (activeConversations$ | async; as conversations) {
+    @if (conversations.length === 0) {
+      <div class="empty-list-label">Nenhum atendimento ativo.</div>
+    }
+    @for (convo of conversations; track convo.id) {
+      <ul class="convo-list">
+        <li 
+          class="convo-item"
+          (click)="selectConversation(convo.id, 'active')"
+          [class.selected]="convo.id === currentSelectedId"
+          [ngClass]="{ 'closed': convo.status === 'closed' }">
+          
+          <div class="item-header">
+            <h4>{{ convo.userName }}</h4>
+            
+            @if(convo.intakeData) {
+            @switch (convo.intakeData.opcaoAtendimento) {
+                @case ('COMISSIONAMENTO') { <span class="service-tag tag-red">(Comissionamento)</span> }
+                @case ('VERIFICAR COMUNICAÇÃO') { <span class="service-tag tag-blue">(Verificar Com.)</span> }
+                @case ('CADASTRO DE PORTA HUGHES') { <span class="service-tag tag-green">(Cadastro Hughes)</span> }
+                @case ('TROCA DE PORTA GPRS') { <span class="service-tag tag-orange">(Troca GPRS)</span> }
+                @case ('TROCA DE TECNOLOGIA DE COMUNICAÇÃO') { <span class="service-tag tag-purple">(Troca Tec.)</span> }
+                @case ('VOLTAR COMUNICAÇÃO') { <span class="service-tag tag-yellow">(Voltar Com.)</span> }
+                @default { <span class="service-tag tag-grey">(Outro)</span> }
+              }
+            }
+          </div>
+          
+          <p>{{ convo.lastMessage.text }}</p>
+        </li>
+      </ul>
+    }
+  } @else {
+    <div class="loading">Carregando atendimentos...</div>
+  }
+  
+</div>
