@@ -124,7 +124,7 @@ export class ConversationList implements OnInit {
       'IP': convo.intakeData?.ip || '', // IP não é alterado
       'Porta': convo.intakeData?.porta || '', // Porta não é alterada
       'Data Atendimento': convo.queuedAt?.toDate().toLocaleDateString('pt-BR') || 'Data não registrada',
-      'UserId': convo.userId || ''
+      //'UserId': convo.userId || ''
     }));
     // --- FIM DA CORREÇÃO ---
   }

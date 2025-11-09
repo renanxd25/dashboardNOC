@@ -42,12 +42,12 @@
             
             @if(convo.intakeData) { 
             @switch (convo.intakeData.opcaoAtendimento) {
-                @case ('COMISSIONAMENTO') { <span class="service-tag tag-red">(Comissionamento)</span> }
-                @case ('VERIFICAR COMUNICAÇÃO') { <span class="service-tag tag-blue">(Verificar Com.)</span> }
-                @case ('CADASTRO DE PORTA HUGHES') { <span class="service-tag tag-green">(Cadastro Hughes)</span> }
-                @case ('TROCA DE PORTA GPRS') { <span class="service-tag tag-orange">(Troca GPRS)</span> }
-                @case ('TROCA DE TECNOLOGIA DE COMUNICAÇÃO') { <span class="service-tag tag-purple">(Troca Tec.)</span> }
-                @case ('VOLTAR COMUNICAÇÃO') { <span class="service-tag tag-yellow">(Voltar Com.)</span> }
+                @case ('COMISSIONAMENTO') { <span class="service-tag tag-red">(Comissionamento (5))</span> }
+                @case ('VERIFICAR COMUNICAÇÃO') { <span class="service-tag tag-blue">(Verificar Comunicação (1))</span> }
+                @case ('CADASTRO DE PORTA HUGHES') { <span class="service-tag tag-green">(Cadastro Hughes(3))</span> }
+                @case ('TROCA DE PORTA GPRS') { <span class="service-tag tag-orange">(Troca GPRS(2))</span> }
+                @case ('TROCA DE TECNOLOGIA DE COMUNICAÇÃO') { <span class="service-tag tag-purple">(Troca Cominiação(4))</span> }
+                @case ('VOLTAR COMUNICAÇÃO') { <span class="service-tag tag-yellow">(Voltar Comunicação(6))</span> }
                 @default { <span class="service-tag tag-grey">(Outro)</span> }
               }
             }
