@@ -1,142 +1,86 @@
 <div class="chat-window-wrapper">
   
   <div *ngIf="!conversationId" class="chat-prompt">
-    Selecione uma conversa para começar
+    <i class="fa-regular fa-comments"></i>
+    <p>Selecione uma conversa para começar o atendimento</p>
   </div>
 
   <ng-container *ngIf="conversationId">
     
     <div class="header">
-      <h3>{{ currentConversation?.userName || 'Carregando...' }}</h3>
-      <button 
-        *ngIf="currentConversation?.status !== 'closed' && !isEditing()" 
-        (click)="endChat()" 
-        class="end-chat-btn">
-        Encerrar Atendimento
-      </button>
-      <span *ngIf="currentConversation?.status === 'closed'" class="chat-closed-label">
-        Encerrado
-      </span>
+      <div class="header-left">
+        <h3>{{ currentConversation?.userName | uppercase }}</h3>
+        <span class="status-badge" [ngClass]="currentConversation?.status">{{ currentConversation?.status }}</span>
+      </div>
+      
+      <div class="header-actions">
+        <button 
+          *ngIf="currentConversation?.status !== 'closed' && !isEditing()" 
+          (click)="endChat()" 
+          class="end-chat-btn">
+          Encerrar
+        </button>
+        <span *ngIf="currentConversation?.status === 'closed'" class="chat-closed-label">
+          Encerrado
+        </span>
+      </div>
     </div>
 
     <div *ngIf="currentConversation?.intakeData" class="intake-data">
       
       <div class="intake-header">
         <h4>Dados de Atendimento</h4>
-        <button *ngIf="!isEditing()" (click)="toggleEdit()" class="edit-btn">
-          Editar
-        </button>
+        
+        <div class="header-controls">
+           <button *ngIf="!isEditing() && isIntakeExpanded()" (click)="toggleEdit()" class="edit-btn">Editar</button>
+          
+          <button (click)="toggleIntake()" class="toggle-btn" title="Mostrar/Esconder Dados">
+            <i class="fa-solid" [ngClass]="isIntakeExpanded() ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+          </button>
+        </div>
       </div>
 
-      @if (!isEditing()) {
-        <ul class="intake-list">
-          <li><strong>Nome:</strong> {{ currentConversation?.intakeData?.nome }}</li>
-          <li><strong>Distribuidora:</strong> {{ currentConversation?.intakeData?.distribuidora }}</li>
-          <li><strong>Regional:</strong> {{ currentConversation?.intakeData?.regional }}</li>
-          <li><strong>Atendimento:</strong> {{ currentConversation?.intakeData?.opcaoAtendimento }}</li>
-          <li><strong>SE/AL:</strong> {{ currentConversation?.intakeData?.siglaSEAL }}</li>
-          <li><strong>Componente:</strong> {{ currentConversation?.intakeData?.componente }}</li>
-          <li><strong>Modelo:</strong> {{ currentConversation?.intakeData?.modeloControle }}</li>
-          <li><strong>Comunicação:</strong> {{ currentConversation?.intakeData?.modoComunicacao }}</li>
-          <li><strong>IP:</strong> {{ currentConversation?.intakeData?.ip }}</li>
-          <li><strong>Porta:</strong> {{ currentConversation?.intakeData?.porta }}</li>
-        </ul>
-      }
+      @if (isIntakeExpanded()) {
+        
+        @if (!isEditing()) {
+          <ul class="intake-list">
+            <li><strong>Nome:</strong> {{ currentConversation?.intakeData?.nome }}</li>
+            <li><strong>Distribuidora:</strong> {{ currentConversation?.intakeData?.distribuidora }}</li>
+            <li><strong>Regional:</strong> {{ currentConversation?.intakeData?.regional }}</li>
+            <li><strong>Atendimento:</strong> {{ currentConversation?.intakeData?.opcaoAtendimento }}</li>
+            <li><strong>SE/AL:</strong> {{ currentConversation?.intakeData?.siglaSEAL }}</li>
+            <li><strong>Componente:</strong> {{ currentConversation?.intakeData?.componente }}</li>
+            <li><strong>Modelo:</strong> {{ currentConversation?.intakeData?.modeloControle }}</li>
+            <li><strong>Comunicação:</strong> {{ currentConversation?.intakeData?.modoComunicacao }}</li>
+            <li><strong>IP:</strong> {{ currentConversation?.intakeData?.ip }}</li>
+            <li><strong>Porta:</strong> {{ currentConversation?.intakeData?.porta }}</li>
+          </ul>
+        }
 
-      @else if (editableData) {
-        <form class="intake-edit-form" (ngSubmit)="saveIntakeData()">
-          <div class="form-grid">
-            
-            <div class="form-group">
-              <label for="edit-nome">Nome</label>
-              <input type="text" id="edit-nome" name="edit-nome" [(ngModel)]="editableData.nome" required>
+        @else if (editableData) {
+          <form class="intake-edit-form" (ngSubmit)="saveIntakeData()">
+            <div class="form-grid">
+              <div class="form-group"><label>Nome</label><input type="text" [(ngModel)]="editableData.nome" name="edit-nome" required></div>
+              <div class="form-group"><label>Distribuidora</label><select [(ngModel)]="editableData.distribuidora" name="edit-dist"><option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option><option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option><option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option><option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option><option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option><option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option><option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option><option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option><option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option></select></div>
+              <div class="form-group"><label>Regional</label><input type="text" [(ngModel)]="editableData.regional" name="edit-reg"></div>
+              <div class="form-group"><label>Atendimento</label><select [(ngModel)]="editableData.opcaoAtendimento" name="edit-op"><option value="COMISSIONAMENTO">COMISSIONAMENTO</option><option value="VERIFICAR COMUNICAÇÃO">VERIFICAR COMUNICAÇÃO</option><option value="CADASTRO DE PORTA HUGHES">CADASTRO DE PORTA HUGHES</option><option value="TROCA DE PORTA GPRS">TROCA DE PORTA GPRS</option><option value="TROCA DE TECNOLOGIA DE COMUNICAÇÃO">TROCA DE TECNOLOGIA DE COMUNICAÇÃO</option><option value="VOLTAR COMUNICAÇÃO">VOLTAR COMUNICAÇÃO</option></select></div>
+              <div class="form-group"><label>SE/AL</label><input type="text" [(ngModel)]="editableData.siglaSEAL" name="edit-seal"></div>
+              <div class="form-group"><label>Componente</label><input type="text" [(ngModel)]="editableData.componente" name="edit-comp"></div>
+              <div class="form-group"><label>Modelo</label><select [(ngModel)]="editableData.modeloControle" name="edit-mod"><option value="ADATECH">ADATECH</option><option value="SEL 651R">SEL 651R</option><option value="SEL 751">SEL 751</option><option value="ADVC3">ADVC3</option><option value="ADVC">ADVC</option><option value="NOJA">NOJA</option><option value="TAVRIDA">TAVRIDA</option><option value="RUA">RUA</option><option value="TAPELETRO">TAPELETRO</option><option value="CTR2">CTR2</option><option value="CTR3">CTR3</option><option value="FORM6">FORM6</option><option value="G&W">G&W</option><option value="NENHUM">NENHUM</option></select></div>
+              <div class="form-group"><label>Comunicação</label><select [(ngModel)]="editableData.modoComunicacao" name="edit-com"><option value="GPRS">GPRS</option><option value="BGAN">BGAN</option><option value="TELESPAZIO">TELESPAZIO</option><option value="RÁDIO">RÁDIO</option><option value="V2COM">V2COM</option><option value="FIBRA">FIBRA</option><option value="KOALA">KOALA</option><option value="SENSOR MT">SENSOR MT</option></select></div>
+              <div class="form-group"><label>IP</label><input type="text" [(ngModel)]="editableData.ip" name="edit-ip"></div>
+              <div class="form-group"><label>Porta</label><input type="text" [(ngModel)]="editableData.porta" name="edit-porta"></div>
             </div>
-            
-            <div class="form-group">
-              <label for="edit-dist">Distribuidora</label>
-              <select id="edit-dist" name="edit-dist" [(ngModel)]="editableData.distribuidora" required>
-                <option value="MA">MA</option>
-                <option value="PA">PA</option>
-                <option value="PI">PI</option>
-                <option value="AP">AP</option>
-                <option value="RS">RS</option>
-                <option value="GO">GO</option>
-                <option value="AL">AL</option>
-              </select>
+            <div class="form-actions">
+              <button type="button" (click)="cancelEdit()" class="btn-cancel">Cancelar</button>
+              <button type="submit" class="btn-save">Salvar</button>
             </div>
-            
-            <div class="form-group">
-              <label for="edit-regional">Regional</label>
-              <input type="text" id="edit-regional" name="edit-regional" [(ngModel)]="editableData.regional" required>
-            </div>
-            <div class="form-group">
-              <label for="edit-atend">Atendimento</label>
-              <select id="edit-atend" name="edit-atend" [(ngModel)]="editableData.opcaoAtendimento" required>
-                <option value="COMISSIONAMENTO">COMISSIONAMENTO</option>
-                <option value="VERIFICAR COMUNICAÇÃO">VERIFICAR COMUNICAÇÃO</option>
-                <option value="CADASTRO DE PORTA HUGHES">CADASTRO DE PORTA HUGHES</option>
-                <option value="TROCA DE PORTA GPRS">TROCA DE PORTA GPRS</option>
-                <option value="TROCA DE TECNOLOGIA DE COMUNICAÇÃO">TROCA DE TECNOLOGIA DE COMUNICAÇÃO</option>
-                <option value="VOLTAR COMUNICAÇÃO">VOLTAR COMUNICAÇÃO</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="edit-seal">SE/AL</label>
-              <input type="text" id="edit-seal" name="edit-seal" [(ngModel)]="editableData.siglaSEAL" required>
-            </div>
-            <div class="form-group">
-              <label for="edit-comp">Componente</label>
-              <input type="text" id="edit-comp" name="edit-comp" [(ngModel)]="editableData.componente" required>
-            </div>
-            <div class="form-group">
-              <label for="edit-modelo">Modelo</label>
-              <select id="edit-modelo" name="edit-modelo" [(ngModel)]="editableData.modeloControle" required>
-                <option value="ADATECH">ADATECH</option>
-                <option value="SEL 651R">SEL 651R</option>
-                <option value="SEL 751">SEL 751</option>
-                <option value="ADVC3">ADVC3</option>
-                <option value="ADVC">ADVC</option>
-                <option value="NOJA">NOJA</option>
-                <option value="TAVRIDA">TAVRIDA</option>
-                <option value="RUA">RUA</option>
-                <option value="TAPELETRO">TAPELETRO</option>
-                <option value="CTR2">CTR2</option>
-                <option value="CTR3">CTR3</option>
-                <option value="FORM6">FORM6</option>
-                <option value="G&W">G&W</option>
-                <option value="NENHUM">NENHUM</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="edit-com">Comunicação</label>
-              <select id="edit-com" name="edit-com" [(ngModel)]="editableData.modoComunicacao" required>
-                <option value="GPRS">GPRS</option>
-                <option value="BGAN">BGAN</option>
-                <option value="TELESPAZIO">TELESPAZIO</option>
-                <option value="RÁDIO">RÁDIO</option>
-                <option value="V2COM">V2COM</option>
-                <option value="FIBRA">FIBRA</option>
-                <option value="KOALA">KOALA</option>
-                <option value="SENSOR MT">SENSOR MT</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="edit-ip">IP</label>
-              <input type="text" id="edit-ip" name="edit-ip" [(ngModel)]="editableData.ip" required>
-            </div>
-            <div class="form-group">
-              <label for="edit-porta">Porta</label>
-              <input type="text" id="edit-porta" name="edit-porta" [(ngModel)]="editableData.porta" required>
-            </div>
-          </div>
-          
-          <div class="form-actions">
-            <button type="button" (click)="cancelEdit()" class="btn-cancel">Cancelar</button>
-            <button type="submit" class="btn-save">Salvar Alterações</button>
-          </div>
-        </form>
+          </form>
+        }
+
       }
     </div>
+
     <div class="messages-area" #messagesArea> 
       <div class="messages-container">
         <div *ngFor="let msg of (messages$ | async)"
@@ -145,9 +89,40 @@
               'client': msg.senderId !== currentAdminId,
               'admin': msg.senderId === currentAdminId
             }">
-          <p [innerHTML]="msg.text | preformat"></p>
+          
+          <div class="sender-name">
+            {{ msg.senderId === currentAdminId ? 'Você' : currentConversation?.userName }}
+          </div>
+
+          @if(msg.text) {
+            <p [innerHTML]="msg.text | preformat"></p>
+          } 
+          @else if (msg.mediaUrl && msg.mediaType === 'image') {
+            <a [href]="msg.mediaUrl" target="_blank">
+              <img [src]="msg.mediaUrl" alt="Anexo" class="chat-media-img">
+            </a>
+          } 
+          @else if (msg.mediaUrl && msg.mediaType === 'video') {
+            <video controls [src]="msg.mediaUrl" class="chat-media-video"></video>
+          } 
+          @else if (msg.mediaUrl && msg.mediaType === 'audio') {
+            <audio controls [src]="msg.mediaUrl" class="chat-media-audio"></audio>
+          }
+
+          <span class="timestamp">
+            {{ msg.timestamp.toDate() | date:'HH:mm' }}
+          </span>
         </div>
       </div>
+    </div>
+
+    <div *ngIf="isUploading()" class="upload-indicator">
+      Enviando arquivo... {{ uploadPercentage() | number:'1.0-0' }}%
+      <div class="progress-bar"><div class="progress" [style.width.%]="uploadPercentage()"></div></div>
+    </div>
+
+    <div *ngIf="isRecording()" class="recording-status">
+      <span class="pulsing-dot"></span> Gravando áudio...
     </div>
 
     <form 
@@ -156,8 +131,20 @@
       (ngSubmit)="sendMessage(chatForm)"
       *ngIf="currentConversation?.status !== 'closed'"> 
       
-      <input type="text" placeholder="Digite sua resposta..." name="message" ngModel required>
-      <button type="submit" [disabled]="chatForm.invalid">Enviar</button>
+      <button type="button" class="icon-btn" (click)="fileInput.click()" [disabled]="isUploading() || isRecording()" title="Anexar arquivo">
+        <i class="fa-solid fa-paperclip"></i>
+      </button>
+      <input type="file" #fileInput (change)="onFileSelected($event)" style="display:none" accept="image/*,video/*,audio/*,application/pdf">
+
+      <button type="button" class="icon-btn mic-btn" [ngClass]="{'recording': isRecording()}" (click)="toggleRecording()" [disabled]="isUploading()" title="Gravar áudio">
+        <i class="fa-solid" [ngClass]="isRecording() ? 'fa-stop' : 'fa-microphone'"></i>
+      </button>
+
+      <input *ngIf="!isRecording()" type="text" placeholder="Digite sua resposta..." name="message" ngModel autocomplete="off" required>
+      
+      <button *ngIf="!isRecording()" type="submit" [disabled]="chatForm.invalid || isUploading()">
+        <i class="fa-solid fa-paper-plane"></i>
+      </button>
     </form>
 
   </ng-container>

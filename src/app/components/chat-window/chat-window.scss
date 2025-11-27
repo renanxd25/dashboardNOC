@@ -1,265 +1,229 @@
-/* Estrutura principal */
+$primary: #007bff;
+$primary-dark: #0056b3;
+$bg-light: #f8f9fa;
+$border-color: #dee2e6;
+$text-color: #343a40;
+
+// CORES DOS BALÕES
+$admin-msg-bg: #0E2746; 
+$client-msg-bg: #ffffff; 
+$danger: #dc3545;
+$danger-light: #ffebee;
+
+// --- CORREÇÃO DE LAYOUT ---
 :host {
-  display: flex;
-  flex: 1;
-  min-height: 0; 
-  min-width: 0; 
-  padding: 1.5rem; 
-  box-sizing: border-box;
+  display: block;
+  height: 100%; 
+  overflow: hidden;
 }
 
 .chat-window-wrapper {
-  height: 100%;
-  width: 100%;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
-  border-radius: 12px; 
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  overflow: hidden; 
+  height: 100%; 
+  background-color: #fff;
+  border-left: 1px solid $border-color;
+  position: relative;
 }
 
+// --- TELA DE SELEÇÃO ---
 .chat-prompt {
-  flex: 1;
+  height: 100%;
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  align-items: center;
-  color: #888;
-  font-size: 1.2rem;
+  color: #adb5bd;
+  i { font-size: 4rem; margin-bottom: 20px; }
+  p { font-size: 1.2rem; }
 }
 
-/* Header */
+// --- HEADER ---
 .header {
-  padding: 1.25rem 1.5rem;
-  background: #ffffff; 
-  border-bottom: 1px solid #eee; 
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-shrink: 0; 
-  
-  h3 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 700;
-  }
-}
-
-.header, .intake-data {
   flex-shrink: 0;
-}
-
-.header {
-  .end-chat-btn {
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 600;
-    &:hover { background-color: #c82333; }
-  }
-  .chat-closed-label {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #28a745; 
-  }
-}
-
-/* Bloco de Intake (Dados do Cliente) */
-.intake-data {
-  background: #f7f9fc;
-  border-bottom: 1px solid #eee;
-  padding: 1rem 1.5rem;
-  flex-shrink: 0; 
-}
-
-/* Cabeçalho da seção de Intake (com botão Editar) */
-.intake-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid $border-color;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  background-color: #fff;
 
-  h4 {
-    margin: 0;
-    font-size: 1rem;
-    color: #333;
-  }
-
-  .edit-btn {
-    background: transparent;
-    border: none;
-    color: #007bff;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 0.25rem;
-    &:hover { color: #0056b3; }
-  }
-}
-
-/* Lista de visualização (ul) */
-.intake-list {
-  list-style: none; 
-  padding: 0; 
-  margin: 0; 
-  display: flex; 
-  flex-wrap: wrap; 
-  
-  li { 
-    margin-right: 1.5rem; 
-    font-size: 0.9em; 
-    color: #333; 
-    margin-top: 0.5rem;
-
-    // --- A CORREÇÃO ESTÁ AQUI ---
-    text-transform: uppercase; // Força o texto a ser maiúsculo
-    // --- FIM DA CORREÇÃO ---
-  }
-}
-
-/* Formulário de Edição */
-.intake-edit-form {
-  
-  .form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-    gap: 1rem;
-  }
-
-  .form-group {
-    label {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #555;
-      margin-bottom: 0.25rem;
+  .header-left {
+    h3 { margin: 0; font-size: 1.1rem; color: $text-color; }
+    .status-badge {
+      font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; margin-top: 4px; display: inline-block; text-transform: uppercase;
+      &.active { background-color: #d4edda; color: #155724; }
+      &.queued { background-color: #fff3cd; color: #856404; }
+      &.closed { background-color: #e2e3e5; color: #383d41; }
     }
+  }
 
-    input[type="text"], 
-    select {
-      width: 100%;
-      padding: 0.6rem 0.8rem;
-      box-sizing: border-box;
-      border: 1px solid #ddd;
-      border-radius: 6px; 
-      font-size: 0.9rem;
-      font-family: 'Manrope', sans-serif;
-      // NÃO colocamos 'uppercase' aqui para o admin poder editar o texto original
-      &:focus {
-        outline: none;
-        border-color: #0e2746;
-        box-shadow: 0 0 0 3px rgba(14, 39, 70, 0.1);
+  .end-chat-btn {
+    background-color: $danger; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 0.9rem;
+    &:hover { filter: brightness(0.9); }
+  }
+  
+  .chat-closed-label {
+    background-color: #6c757d; color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem;
+  }
+}
+
+// --- DADOS DO CLIENTE (INTAKE) ---
+.intake-data {
+  flex-shrink: 0;
+  background-color: $bg-light;
+  padding: 15px 20px;
+  border-bottom: 1px solid $border-color;
+  font-size: 0.9rem;
+  
+  // Removemos o max-height fixo grande para deixar o conteúdo definir, 
+  // mas colocamos um limite caso a lista seja muito longa.
+  max-height: 40vh; 
+  overflow-y: auto;
+  transition: all 0.3s ease; // Animação suave (opcional)
+
+  .intake-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+    h4 { margin: 0; color: #6c757d; font-size: 0.85rem; text-transform: uppercase; }
+    
+    // Controles (Editar + Seta)
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .edit-btn { background: none; border: none; color: $primary; cursor: pointer; font-size: 0.85rem; &:hover { text-decoration: underline; } }
+      
+      .toggle-btn {
+        background: transparent; border: 1px solid $border-color; border-radius: 50%;
+        width: 25px; height: 25px; display: flex; align-items: center; justify-content: center;
+        color: #6c757d; cursor: pointer; transition: all 0.2s;
+        &:hover { background-color: #e2e6ea; color: $text-color; }
+        i { font-size: 0.7rem; }
       }
     }
   }
-  
-  .form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    margin-top: 1.5rem;
-    border-top: 1px solid #eee;
-    padding-top: 1rem;
 
-    button {
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .btn-cancel {
-      background-color: #f0f0f0;
-      color: #555;
-      &:hover { background-color: #e0e0e0; }
-    }
-    .btn-save {
-      background-color: #28a745; 
-      color: white;
-      &:hover { background-color: #218838; }
-    }
+  .intake-list {
+    list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    li { color: $text-color; strong { color: #555; } }
   }
 }
 
-/* Área de scroll */
-.messages-area {
-  flex: 1; 
-  overflow-y: auto; 
-  padding: 1.5rem;
-  min-height: 0; 
-  background: #ffffff; 
+// --- FORM DE EDIÇÃO ---
+.intake-edit-form {
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-group {
+    display: flex; flex-direction: column;
+    label { font-size: 0.8rem; margin-bottom: 2px; font-weight: bold; }
+    input, select { padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+  }
+  .form-actions {
+    margin-top: 10px; display: flex; gap: 10px; justify-content: flex-end;
+    button { padding: 5px 15px; border-radius: 4px; cursor: pointer; border: none; font-size: 0.9rem; }
+    .btn-cancel { background: #e0e0e0; color: #333; }
+    .btn-save { background: $primary; color: white; }
+  }
 }
 
-.messages-container {
+// --- MENSAGENS ---
+.messages-area {
+  flex: 1;
+  min-height: 0;
+  padding: 20px;
+  overflow-y: auto;
+  background-color: #f0f2f5;
   display: flex;
   flex-direction: column;
+
+  .messages-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding-bottom: 10px;
+  }
+
+  .message-bubble {
+    max-width: 70%; padding: 10px 15px; border-radius: 8px; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    
+    .sender-name { display: none; } // Esconde o nome
+    p { margin: 0; line-height: 1.4; white-space: pre-wrap; }
+    .timestamp { display: block; font-size: 0.7rem; color: #999; text-align: right; margin-top: 5px; }
+
+    &.admin {
+      align-self: flex-end; 
+      background-color: $admin-msg-bg; 
+      color: #ffffff; 
+      border-bottom-right-radius: 0;
+      .timestamp { color: #d0d0d0; } 
+    }
+
+    &.client {
+      align-self: flex-start; background-color: $client-msg-bg; border-bottom-left-radius: 0;
+    }
+  }
 }
 
-/* Balões de mensagem */
-.message-bubble {
-  padding: 0.75rem 1rem; 
-  border-radius: 18px;
-  margin-bottom: 8px;
-  max-width: 70%;
-  line-height: 1.5;
+// --- MÍDIAS ---
+.chat-media-img, .chat-media-video { max-width: 100%; border-radius: 8px; margin-top: 5px; }
+.chat-media-audio { width: 100%; margin-top: 5px; min-width: 200px; }
 
-  p { margin: 0; }
-  
-  &.client {
-    background: #e9e9eb; 
-    color: #333;
-    align-self: flex-start;
-    border-radius: 18px 18px 18px 5px; 
-  }
-  
-  &.admin {
-    background: #0e2746; 
-    color: white;
-    align-self: flex-end;
-    border-radius: 18px 18px 5px 18px; 
-  }
+// --- UPLOAD & STATUS ---
+.upload-indicator {
+  flex-shrink: 0;
+  padding: 5px 15px; font-size: 0.8rem; background: #e8f0fe; color: $primary; border-top: 1px solid #d0e2ff;
+  .progress-bar { height: 3px; background: #cce5ff; margin-top: 3px; .progress { height: 100%; background: $primary; transition: width 0.3s; } }
 }
 
-/* Formulário de chat */
+.recording-status {
+  flex-shrink: 0;
+  background-color: $danger-light; color: $danger; padding: 8px 15px; font-size: 0.9rem; font-weight: 600;
+  display: flex; align-items: center; border-top: 1px solid rgba($danger, 0.2);
+  .pulsing-dot { width: 8px; height: 8px; background: $danger; border-radius: 50%; margin-right: 8px; animation: pulse 1s infinite; }
+}
+
+@keyframes pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+// --- INPUT ---
 .message-form {
-  border-top: 1px solid #eee;
-  padding: 1.5rem;
-  background: #f7f9fc; 
+  flex-shrink: 0;
+  padding: 15px;
+  background-color: #fff;
+  border-top: 1px solid $border-color;
   display: flex;
-  flex-shrink: 0; 
+  gap: 10px;
+  align-items: center;
 
-  input {
-    flex: 1;
-    padding: 0.9rem 1.25rem; 
-    border: 1px solid #ddd;
-    border-radius: 30px; 
-    margin-right: 1rem;
-    font-size: 1rem;
-    font-family: 'Manrope', sans-serif;
-    transition: all 0.2s ease;
-
-    &:focus {
-      outline: none;
-      border-color: #0e2746;
-      box-shadow: 0 0 0 4px rgba(14, 39, 70, 0.1);
+  .icon-btn {
+    background: transparent; border: none; font-size: 1.2rem; color: #6c757d; cursor: pointer; padding: 5px;
+    display: flex; align-items: center; justify-content: center; transition: color 0.2s;
+    &:hover { color: $primary; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    &.mic-btn.recording {
+      color: white; background: $danger; border-radius: 50%; width: 35px; height: 35px;
+      animation: pulse-border 1.5s infinite;
     }
   }
 
-  button {
-    padding: 0 1.5rem;
-    border: none;
-    background: #0e2746; 
-    color: white;
-    border-radius: 30px; 
-    cursor: pointer;
-    font-weight: 600;
-
-    &:hover { background: #0b203b; }
-    &:disabled { background: #ccc; }
+  input[type="text"] {
+    flex: 1; padding: 10px 15px; border: 1px solid $border-color; border-radius: 20px; outline: none;
+    &:focus { border-color: $primary; }
   }
+
+  button[type="submit"] {
+    background-color: $primary; color: white; border: none; width: 40px; height: 40px; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    &:hover { background-color: $primary-dark; }
+    &:disabled { background-color: #ccc; cursor: not-allowed; }
+  }
+}
+
+@keyframes pulse-border {
+  0% { box-shadow: 0 0 0 0 rgba($danger, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba($danger, 0); }
+  100% { box-shadow: 0 0 0 0 rgba($danger, 0); }
 }
