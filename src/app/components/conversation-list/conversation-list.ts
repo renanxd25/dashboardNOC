@@ -1,7 +1,7 @@
 import { Component, EventEmitter, inject, OnInit, Output, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Observable, Subscription, of, switchMap } from 'rxjs'; // RxJS imports
-import { Conversation } from '../../models';
+import { Observable, Subscription, of, switchMap } from 'rxjs';
+import { Conversation, IntakeData } from '../../models';
 import { 
   Firestore, 
   collection, 
@@ -9,13 +9,29 @@ import {
   query, 
   orderBy,
   where,
-  doc,     
+  doc, 	  
   updateDoc,
   getDocs, 
   Timestamp
 } from '@angular/fire/firestore';
 import { Auth, authState, User } from '@angular/fire/auth';
 import { ExportService } from '../../services/export'; 
+
+
+// --- FUNÇÃO AUXILIAR PARA FORMATAR O TEMPO ---
+function formatDuration(ms: number): string {
+    if (ms < 0) return '00:00:00';
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const pad = (num: number) => num.toString().padStart(2, '0');
+
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+// ---------------------------------------------
+
 
 @Component({
   selector: 'app-conversation-list',
@@ -38,50 +54,30 @@ export class ConversationList implements OnInit {
   isLoading = signal(false);
 
   ngOnInit() {
-    // Stream da Fila
     this.queuedConversations$ = authState(this.auth).pipe(
-      switchMap(user => {
-        if (user) {
-          return this.getQueuedConversations();
-        } else {
-          return of([]); 
-        }
-      })
+      switchMap(user => user ? this.getQueuedConversations() : of([]))
     );
 
-    // Stream dos Ativos
     this.activeConversations$ = authState(this.auth).pipe(
-      switchMap(user => {
-        if (user) {
-          return this.getActiveConversations(user.uid);
-        } else {
-          return of([]); 
-        }
-      })
+      switchMap(user => user ? this.getActiveConversations(user.uid) : of([]))
     );
   }
   
-  // Função separada para buscar a fila
   private getQueuedConversations(): Observable<Conversation[]> {
     const convCollection = collection(this.firestore, 'conversations');
     const q_queue = query(convCollection, where('status', '==', 'queued'), orderBy('queuedAt'));
     return collectionData(q_queue, { idField: 'id' }) as Observable<Conversation[]>;
   }
 
-  // Função separada para buscar os ativos
   private getActiveConversations(adminId: string): Observable<Conversation[]> {
     const convCollection = collection(this.firestore, 'conversations');
     const q_active = query(convCollection, where('status', '==', 'active'), where('attendedBy', '==', adminId), orderBy('lastMessage.timestamp', 'desc'));
     return collectionData(q_active, { idField: 'id' }) as Observable<Conversation[]>;
   }
 
-  // Função 'selectConversation' atualizada
   async selectConversation(id: string, status: 'queued' | 'active') {
     const user = this.auth.currentUser;
-    if (!user) {
-      console.error("Não está logado. Não é possível aceitar o chat.");
-      return; 
-    }
+    if (!user) return console.error("Não está logado. Não é possível aceitar o chat.");
 
     this.currentSelectedId = id; 
     
@@ -93,13 +89,10 @@ export class ConversationList implements OnInit {
         unreadByDashboard: false
       });
     }
-    
     this.conversationSelected.emit(id);
   }
 
-  // --- FUNÇÃO CORRIGIDA ABAIXO ---
-
-  /** Formata os dados brutos do Firestore para o Excel */
+  // --- FUNÇÃO DE EXPORTAÇÃO CORRIGIDA (CÁLCULO DO TEMPO) ---
   private formatDataForExport(snapshot: any) {
     const data = snapshot.docs
       .map((doc: any) => doc.data() as Conversation)
@@ -110,26 +103,50 @@ export class ConversationList implements OnInit {
       return null;
     }
 
-    // --- CORREÇÃO AQUI ---
-    // Adiciona .toUpperCase() em todos os campos de texto
-    return data.map((convo: Conversation) => ({
-      'Nome': convo.intakeData?.nome?.toUpperCase() || '',
-      'Distribuidora': convo.intakeData?.distribuidora?.toUpperCase() || '',
-      'Regional': convo.intakeData?.regional?.toUpperCase() || '',
-      'Atendimento': convo.intakeData?.opcaoAtendimento?.toUpperCase() || '',
-      'SE/AL': convo.intakeData?.siglaSEAL?.toUpperCase() || '',
-      'Componente': convo.intakeData?.componente?.toUpperCase() || '',
-      'Modelo Controle': convo.intakeData?.modeloControle?.toUpperCase() || '',
-      'Comunicação': convo.intakeData?.modoComunicacao?.toUpperCase() || '',
-      'IP': convo.intakeData?.ip || '', // IP não é alterado
-      'Porta': convo.intakeData?.porta || '', // Porta não é alterada
-      'Data Atendimento': convo.queuedAt?.toDate().toLocaleDateString('pt-BR') || 'Data não registrada',
-      //'UserId': convo.userId || ''
-    }));
-    // --- FIM DA CORREÇÃO ---
+    return data.map((convo: Conversation) => {
+      
+      // 1. CÁLCULO DO TEMPO DE ATENDIMENTO
+      let tempoAtendimento = 'Em Andamento';
+      
+      // Só calcula se o chat foi fechado e se as datas existem
+      if (convo.status === 'closed' && convo.queuedAt && convo.closedAt) {
+          
+          // Converte Timestamps (do Firestore) para objetos Date (do JavaScript)
+          const start: Date = convo.queuedAt.toDate ? convo.queuedAt.toDate() : new Date(convo.queuedAt);
+          const end: Date = convo.closedAt.toDate ? convo.closedAt.toDate() : new Date(convo.closedAt);
+          
+          const durationMs = end.getTime() - start.getTime();
+          tempoAtendimento = formatDuration(durationMs);
+      }
+      
+      // 2. Lógica de GPRS (Concatenar Tipo)
+      let comunicacaoDisplay = convo.intakeData?.modoComunicacao || '';
+      if (comunicacaoDisplay === 'GPRS' && convo.intakeData?.tipoGprs) {
+        comunicacaoDisplay = `GPRS - ${convo.intakeData.tipoGprs}`;
+      }
+      
+      return {
+        'Nome': convo.intakeData?.nome?.toUpperCase() || '',
+        'Telefone': convo.intakeData?.telefone || 'N/D', 
+        
+        // NOVA COLUNA: Tempo de Atendimento
+        'Tempo Atendimento': tempoAtendimento, 
+        
+        'Distribuidora': convo.intakeData?.distribuidora?.toUpperCase() || '',
+        'Regional': convo.intakeData?.regional?.toUpperCase() || '',
+        'Atendimento': convo.intakeData?.opcaoAtendimento?.toUpperCase() || '',
+        'SE/AL': convo.intakeData?.siglaSEAL?.toUpperCase() || '',
+        'Componente': convo.intakeData?.componente?.toUpperCase() || '',
+        'Modelo Controle': convo.intakeData?.modeloControle?.toUpperCase() || '',
+        'Comunicação': comunicacaoDisplay.toUpperCase(), 
+        'IP': convo.intakeData?.ip || '', 
+        'Porta': convo.intakeData?.porta || '', 
+        'Data Atendimento': convo.queuedAt?.toDate().toLocaleDateString('pt-BR') || 'Data não registrada',
+      };
+    });
   }
 
-  /** Exporta TODOS os clientes */
+  /** Exporta TODOS os clientes (Botão "Exportar Todos") */
   async exportAll() {
     if (this.isLoading()) return;
     this.isLoading.set(true);
@@ -142,13 +159,13 @@ export class ConversationList implements OnInit {
       }
     } catch (err) {
       console.error(err);
-      alert("Erro ao exportar dados.");
+      alert("Erro ao exportar dados. Verifique o console.");
     } finally {
       this.isLoading.set(false);
     }
   }
 
-  /** Exporta clientes por período */
+  /** Exporta clientes por período (Botão "Exportar por Período") */
   async exportByDateRange(startDate: string, endDate: string) {
     if (!startDate || !endDate) {
       alert("Por favor, selecione a data de início e a data de fim.");
@@ -159,20 +176,23 @@ export class ConversationList implements OnInit {
     try {
       const startTS = Timestamp.fromDate(new Date(startDate + "T00:00:00"));
       const endTS = Timestamp.fromDate(new Date(endDate + "T23:59:59"));
+      
       const q = query(
         collection(this.firestore, 'conversations'),
         where('queuedAt', '>=', startTS),
         where('queuedAt', '<=', endTS)
       );
+      
       const snapshot = await getDocs(q);
       const dataToExport = this.formatDataForExport(snapshot);
+      
       if (dataToExport) {
         const fileName = `clientes_de_${startDate}_a_${endDate}`;
         this.exportService.exportToExcel(dataToExport, fileName);
       }
     } catch (err) {
       console.error(err);
-      alert("Erro ao exportar dados. Você precisará criar um novo índice no Firestore para esta consulta. Veja o console F12 para o link.");
+      alert("Erro ao exportar dados. Você precisará criar um índice no Firestore para esta consulta (queuedAt >=/<=).");
     } finally {
       this.isLoading.set(false);
     }

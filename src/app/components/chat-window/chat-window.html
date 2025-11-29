@@ -45,13 +45,24 @@
         @if (!isEditing()) {
           <ul class="intake-list">
             <li><strong>Nome:</strong> {{ currentConversation?.intakeData?.nome }}</li>
+            
+            <li><strong>Telefone:</strong> {{ currentConversation?.intakeData?.telefone || '--' }}</li>
+            
             <li><strong>Distribuidora:</strong> {{ currentConversation?.intakeData?.distribuidora }}</li>
             <li><strong>Regional:</strong> {{ currentConversation?.intakeData?.regional }}</li>
             <li><strong>Atendimento:</strong> {{ currentConversation?.intakeData?.opcaoAtendimento }}</li>
             <li><strong>SE/AL:</strong> {{ currentConversation?.intakeData?.siglaSEAL }}</li>
             <li><strong>Componente:</strong> {{ currentConversation?.intakeData?.componente }}</li>
             <li><strong>Modelo:</strong> {{ currentConversation?.intakeData?.modeloControle }}</li>
-            <li><strong>Comunicação:</strong> {{ currentConversation?.intakeData?.modoComunicacao }}</li>
+            
+            <li>
+              <strong>Comunicação:</strong> 
+              {{ currentConversation?.intakeData?.modoComunicacao }}
+              <ng-container *ngIf="currentConversation?.intakeData?.modoComunicacao === 'GPRS' && currentConversation?.intakeData?.tipoGprs">
+                - {{ currentConversation?.intakeData?.tipoGprs }}
+              </ng-container>
+            </li>
+
             <li><strong>IP:</strong> {{ currentConversation?.intakeData?.ip }}</li>
             <li><strong>Porta:</strong> {{ currentConversation?.intakeData?.porta }}</li>
           </ul>
@@ -61,6 +72,9 @@
           <form class="intake-edit-form" (ngSubmit)="saveIntakeData()">
             <div class="form-grid">
               <div class="form-group"><label>Nome</label><input type="text" [(ngModel)]="editableData.nome" name="edit-nome" required></div>
+              
+              <div class="form-group"><label>Telefone</label><input type="text" [(ngModel)]="editableData.telefone" name="edit-telefone"></div>
+
               <div class="form-group"><label>Distribuidora</label><select [(ngModel)]="editableData.distribuidora" name="edit-dist"><option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option><option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option><option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option><option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option><option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option><option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option><option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option><option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option><option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option></select></div>
               <div class="form-group"><label>Regional</label><input type="text" [(ngModel)]="editableData.regional" name="edit-reg"></div>
               <div class="form-group"><label>Atendimento</label><select [(ngModel)]="editableData.opcaoAtendimento" name="edit-op"><option value="COMISSIONAMENTO">COMISSIONAMENTO</option><option value="VERIFICAR COMUNICAÇÃO">VERIFICAR COMUNICAÇÃO</option><option value="CADASTRO DE PORTA HUGHES">CADASTRO DE PORTA HUGHES</option><option value="TROCA DE PORTA GPRS">TROCA DE PORTA GPRS</option><option value="TROCA DE TECNOLOGIA DE COMUNICAÇÃO">TROCA DE TECNOLOGIA DE COMUNICAÇÃO</option><option value="VOLTAR COMUNICAÇÃO">VOLTAR COMUNICAÇÃO</option></select></div>
@@ -68,6 +82,16 @@
               <div class="form-group"><label>Componente</label><input type="text" [(ngModel)]="editableData.componente" name="edit-comp"></div>
               <div class="form-group"><label>Modelo</label><select [(ngModel)]="editableData.modeloControle" name="edit-mod"><option value="ADATECH">ADATECH</option><option value="SEL 651R">SEL 651R</option><option value="SEL 751">SEL 751</option><option value="ADVC3">ADVC3</option><option value="ADVC">ADVC</option><option value="NOJA">NOJA</option><option value="TAVRIDA">TAVRIDA</option><option value="RUA">RUA</option><option value="TAPELETRO">TAPELETRO</option><option value="CTR2">CTR2</option><option value="CTR3">CTR3</option><option value="FORM6">FORM6</option><option value="G&W">G&W</option><option value="NENHUM">NENHUM</option></select></div>
               <div class="form-group"><label>Comunicação</label><select [(ngModel)]="editableData.modoComunicacao" name="edit-com"><option value="GPRS">GPRS</option><option value="BGAN">BGAN</option><option value="TELESPAZIO">TELESPAZIO</option><option value="RÁDIO">RÁDIO</option><option value="V2COM">V2COM</option><option value="FIBRA">FIBRA</option><option value="KOALA">KOALA</option><option value="SENSOR MT">SENSOR MT</option></select></div>
+              
+              <div class="form-group" *ngIf="editableData.modoComunicacao === 'GPRS'">
+                <label>Tipo GPRS</label>
+                <select [(ngModel)]="editableData.tipoGprs" name="edit-tipoGprs">
+                  <option value="CAS">CAS</option>
+                  <option value="V2COM">V2COM</option>
+                  <option value="HORUS">HORUS</option>
+                </select>
+              </div>
+
               <div class="form-group"><label>IP</label><input type="text" [(ngModel)]="editableData.ip" name="edit-ip"></div>
               <div class="form-group"><label>Porta</label><input type="text" [(ngModel)]="editableData.porta" name="edit-porta"></div>
             </div>
@@ -110,7 +134,7 @@
           }
 
           <span class="timestamp">
-            {{ msg.timestamp.toDate() | date:'HH:mm' }}
+            {{ msg.timestamp?.toDate() | date:'HH:mm' }}
           </span>
         </div>
       </div>

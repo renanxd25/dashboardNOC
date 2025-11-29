@@ -30,18 +30,17 @@
     @if (conversations.length === 0) {
       <div class="empty-list-label">Nenhum item na fila.</div>
     }
-    @for (convo of conversations; track convo.id) {
-      <ul class="convo-list">
+    <ul class="convo-list">
+      @for (convo of conversations; track convo.id) {
         <li 
           class="convo-item"
-          (click)="selectConversation(convo.id, 'queued')"
-          [class.selected]="convo.id === currentSelectedId">
+          (click)="selectConversation(convo.id!, 'queued')" [class.selected]="convo.id === currentSelectedId">
           
           <div class="item-header">
             <h4>{{ convo.userName }}</h4>
             
             @if(convo.intakeData) { 
-            @switch (convo.intakeData.opcaoAtendimento) {
+              @switch (convo.intakeData.opcaoAtendimento) {
                 @case ('COMISSIONAMENTO') { <span class="service-tag tag-red">(Comissionamento (5))</span> }
                 @case ('VERIFICAR COMUNICAÇÃO') { <span class="service-tag tag-blue">(Verificar Comunicação (1))</span> }
                 @case ('CADASTRO DE PORTA HUGHES') { <span class="service-tag tag-green">(Cadastro Hughes(3))</span> }
@@ -53,10 +52,10 @@
             }
           </div>
           
-          <p>{{ convo.lastMessage.text }}</p>
+          <p>{{ convo.lastMessage?.text }}</p>
         </li>
-      </ul>
-    }
+      }
+    </ul>
   } @else {
     <div class="loading">Carregando fila...</div>
   }
@@ -67,19 +66,18 @@
     @if (conversations.length === 0) {
       <div class="empty-list-label">Nenhum atendimento ativo.</div>
     }
-    @for (convo of conversations; track convo.id) {
-      <ul class="convo-list">
+    <ul class="convo-list">
+      @for (convo of conversations; track convo.id) {
         <li 
           class="convo-item"
-          (click)="selectConversation(convo.id, 'active')"
-          [class.selected]="convo.id === currentSelectedId"
+          (click)="selectConversation(convo.id!, 'active')" [class.selected]="convo.id === currentSelectedId"
           [ngClass]="{ 'closed': convo.status === 'closed' }">
           
           <div class="item-header">
             <h4>{{ convo.userName }}</h4>
             
             @if(convo.intakeData) {
-            @switch (convo.intakeData.opcaoAtendimento) {
+              @switch (convo.intakeData.opcaoAtendimento) {
                 @case ('COMISSIONAMENTO') { <span class="service-tag tag-red">(Comissionamento)</span> }
                 @case ('VERIFICAR COMUNICAÇÃO') { <span class="service-tag tag-blue">(Verificar Com.)</span> }
                 @case ('CADASTRO DE PORTA HUGHES') { <span class="service-tag tag-green">(Cadastro Hughes)</span> }
@@ -91,10 +89,10 @@
             }
           </div>
           
-          <p>{{ convo.lastMessage.text }}</p>
+          <p>{{ convo.lastMessage?.text }}</p>
         </li>
-      </ul>
-    }
+      }
+    </ul>
   } @else {
     <div class="loading">Carregando atendimentos...</div>
   }

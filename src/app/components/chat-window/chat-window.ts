@@ -6,19 +6,20 @@ import { Conversation, Message, IntakeData } from '../../models';
 import { 
   Firestore, collection, collectionData, query, 
   orderBy, addDoc, serverTimestamp, doc, updateDoc,
-  onSnapshot, Timestamp, Unsubscribe, getDocs, setDoc
+  onSnapshot, Timestamp, Unsubscribe, getDocs
 } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
 import { take } from 'rxjs/operators';
 import { Storage, ref, deleteObject, uploadBytesResumable, getDownloadURL } from '@angular/fire/storage';
-import { PreformatPipe } from '../../utils/preformat-pipe';
+// Certifique-se que o caminho do pipe está correto no seu projeto
+import { PreformatPipe } from '../../utils/preformat-pipe'; 
 
 @Component({
   selector: 'app-chat-window',
   standalone: true,
   imports: [CommonModule, FormsModule, PreformatPipe], 
-  templateUrl: './chat-window.html',
-  styleUrl: './chat-window.scss'
+  templateUrl: './chat-window.html', // Verifique se o nome do arquivo é .html ou .component.html
+  styleUrl: './chat-window.scss'     // Verifique se o nome do arquivo é .scss ou .component.scss
 })
 export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked { 
   @Input() conversationId: string | null = null;
@@ -40,9 +41,8 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
 
   isEditing = signal(false);
   
-  // --- NOVO SIGNAL: CONTROLE DE VISIBILIDADE DO INTAKE ---
+  // Controle de visibilidade dos dados do cliente (Intake)
   isIntakeExpanded = signal(true); 
-  // -------------------------------------------------------
 
   editableData: IntakeData | null = null;
 
@@ -64,22 +64,27 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       if (this.convSub) this.convSub();
       this.loadMessages(this.conversationId);
       const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
+      
       this.convSub = onSnapshot(convDocRef, (docSnap) => {
         if (docSnap.exists()) {
           this.currentConversation = { id: docSnap.id, ...docSnap.data() } as Conversation;
+          
+          // Se estiver editando e os dados mudarem no banco, cancela edição para evitar conflito
           if (this.isEditing() && docSnap.data()['intakeData'] !== this.editableData) {
-            this.cancelEdit();
+            // Opcional: manter edição ou cancelar. Aqui cancelamos por segurança.
+            // this.cancelEdit(); 
           }
         } else {
           this.currentConversation = null;
         }
       });
+
       this.shouldScrollToBottom = true; 
       this.isEditing.set(false); 
       this.isRecording.set(false);
       this.isUploading.set(false);
       
-      // Opcional: Sempre abrir o intake ao trocar de conversa (ou remova para manter o estado anterior)
+      // Abre os dados do cliente automaticamente ao trocar de conversa
       this.isIntakeExpanded.set(true); 
 
     } else if (!this.conversationId) {
@@ -123,8 +128,10 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       senderId: this.currentAdminId,
       timestamp: serverTimestamp() as Timestamp
     };
+    
     const messagesCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
     await addDoc(messagesCollection, newMessage);
+    
     const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
     await updateDoc(convDocRef, {
       lastMessage: { text: messageText, timestamp: serverTimestamp() },
@@ -201,6 +208,8 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     }
   }
 
+  
+
   async startRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -236,59 +245,63 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   }
 
   async endChat() {
-    if (!this.conversationId || !this.currentAdminId) return;
-    if (!confirm("Tem certeza? Isso apagará todas as mídias desta conversa permanentemente.")) return;
+  if (!this.conversationId || !this.currentAdminId) return;
+  if (!confirm("Tem certeza? Isso apagará todas as mídias desta conversa permanentemente.")) return;
 
-    try {
-      const msgsCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
-      const snapshot = await getDocs(msgsCollection);
+  try {
+    const msgsCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
+    const snapshot = await getDocs(msgsCollection);
 
-      const deletePromises: Promise<void>[] = [];
-      snapshot.forEach(docSnap => {
-        const msg = docSnap.data() as Message;
-        if (msg.mediaUrl) {
-          try {
-            const fileRef = ref(this.storage, msg.mediaUrl);
-            deletePromises.push(deleteObject(fileRef).catch(e => console.warn("Erro ao deletar:", e)));
-          } catch(e) { console.error(e); }
-        }
-      });
+    const deletePromises: Promise<void>[] = [];
+    snapshot.forEach(docSnap => {
+      const msg = docSnap.data() as Message;
+      if (msg.mediaUrl) {
+        try {
+          const fileRef = ref(this.storage, msg.mediaUrl);
+          deletePromises.push(deleteObject(fileRef).catch(e => console.warn("Erro ao deletar:", e)));
+        } catch(e) { console.error(e); }
+      }
+    });
 
-      await Promise.all(deletePromises);
+    await Promise.all(deletePromises);
 
-      const endMessageText = "Atendimento encerrado pelo nosso agente.";
-      const newMessage: Message = {
-        text: endMessageText,
-        senderId: this.currentAdminId,
-        timestamp: serverTimestamp() as Timestamp
-      };
-      await addDoc(msgsCollection, newMessage);
+    const endMessageText = "Atendimento encerrado pelo nosso agente.";
+    const newMessage: Message = {
+      text: endMessageText,
+      senderId: this.currentAdminId,
+      timestamp: serverTimestamp() as Timestamp
+    };
+    await addDoc(msgsCollection, newMessage);
 
-      const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
-      await updateDoc(convDocRef, {
-        status: 'closed',
-        attendedBy: null,  
-        lastMessage: { text: endMessageText, timestamp: serverTimestamp() },
-        unreadByDashboard: false
-      });
+    const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
+    
+    // --- MODIFICAÇÃO CHAVE AQUI ---
+    await updateDoc(convDocRef, {
+      status: 'closed',
+      attendedBy: null, 
+      closedAt: serverTimestamp(), // <-- REGISTRA A HORA DE FIM
+      lastMessage: { text: endMessageText, timestamp: serverTimestamp() },
+      unreadByDashboard: false
+    });
+    // ----------------------------
 
-      this.isEditing.set(false); 
+    this.isEditing.set(false); 
 
-    } catch (error) {
-      console.error("Erro ao encerrar:", error);
-      alert("Houve um erro. Verifique o console.");
-    }
+  } catch (error) {
+    console.error("Erro ao encerrar:", error);
+    alert("Houve um erro. Verifique o console.");
   }
-
+}
   toggleEdit(): void {
     if (!this.currentConversation?.intakeData) return;
     if (this.isEditing()) {
       this.isEditing.set(false);
       this.editableData = null;
     } else {
+      // Clona os dados atuais para edição
       this.editableData = { ...this.currentConversation.intakeData };
       this.isEditing.set(true);
-      this.isIntakeExpanded.set(true); // Garante que abre se for editar
+      this.isIntakeExpanded.set(true); 
     }
   }
 
@@ -297,20 +310,23 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     this.editableData = null;
   }
 
-  // --- NOVA FUNÇÃO PARA O BOTÃO ---
   toggleIntake() {
     this.isIntakeExpanded.update(value => !value);
   }
-  // --------------------------------
 
   async saveIntakeData(): Promise<void> {
     if (!this.editableData || !this.conversationId) return;
     try {
       const convDocRef = doc(this.firestore, 'conversations', this.conversationId);
+      
+      // AQUI ESTÁ O SEGREDO: salvamos o objeto editableData inteiro.
+      // Como o editableData está ligado ao HTML (ngModel), ele já contém o 'telefone' e 'tipoGprs'
+      // se eles foram preenchidos no formulário.
       await updateDoc(convDocRef, {
         intakeData: this.editableData,
         userName: this.editableData.nome 
       });
+      
       this.isEditing.set(false);
       this.editableData = null;
     } catch (err) {
