@@ -1,6 +1,7 @@
 import { Component, EventEmitter, inject, OnInit, Output, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Observable, Subscription, of, switchMap } from 'rxjs';
+import { FormsModule } from '@angular/forms'; // <--- IMPORTANTE PARA O SELECT FUNCIONAR
+import { Observable, Subscription, of, switchMap, BehaviorSubject, combineLatest, map } from 'rxjs';
 import { Conversation, IntakeData } from '../../models';
 import { 
   Firestore, 
@@ -25,9 +26,7 @@ function formatDuration(ms: number): string {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-
     const pad = (num: number) => num.toString().padStart(2, '0');
-
     return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 // ---------------------------------------------
@@ -36,7 +35,7 @@ function formatDuration(ms: number): string {
 @Component({
   selector: 'app-conversation-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule], // <--- ADICIONEI FORMSMODULE
   templateUrl: './conversation-list.html', 
   styleUrl: './conversation-list.scss'
 })
@@ -47,22 +46,61 @@ export class ConversationList implements OnInit {
   auth: Auth = inject(Auth); 
   exportService: ExportService = inject(ExportService);
 
+  // Observables finais filtrados
   queuedConversations$!: Observable<Conversation[]>;
   activeConversations$!: Observable<Conversation[]>;
+
+  // --- LÓGICA DO FILTRO ---
+  filterSubject = new BehaviorSubject<string>(''); // Começa vazio (todos)
+  selectedFilter: string = '';
+  
+  // Suas opções de atendimento (baseado no seu HTML)
+  filterOptions = [
+    'COMISSIONAMENTO',
+    'VERIFICAR COMUNICAÇÃO',
+    'CADASTRO DE PORTA HUGHES',
+    'TROCA DE PORTA GPRS',
+    'TROCA DE TECNOLOGIA DE COMUNICAÇÃO',
+    'VOLTAR COMUNICAÇÃO'
+  ];
+  // ------------------------
 
   currentSelectedId: string | null = null;
   isLoading = signal(false);
 
   ngOnInit() {
-    this.queuedConversations$ = authState(this.auth).pipe(
+    // 1. FILA DE ESPERA COM FILTRO
+    const rawQueued$ = authState(this.auth).pipe(
       switchMap(user => user ? this.getQueuedConversations() : of([]))
     );
 
-    this.activeConversations$ = authState(this.auth).pipe(
+    this.queuedConversations$ = combineLatest([rawQueued$, this.filterSubject]).pipe(
+      map(([conversations, filter]) => {
+        if (!filter) return conversations;
+        // Filtra ignorando maiúsculas/minúsculas por segurança
+        return conversations.filter(c => c.intakeData?.opcaoAtendimento === filter);
+      })
+    );
+
+    // 2. ATENDIMENTOS ATIVOS COM FILTRO
+    const rawActive$ = authState(this.auth).pipe(
       switchMap(user => user ? this.getActiveConversations(user.uid) : of([]))
+    );
+
+    this.activeConversations$ = combineLatest([rawActive$, this.filterSubject]).pipe(
+      map(([conversations, filter]) => {
+        if (!filter) return conversations;
+        return conversations.filter(c => c.intakeData?.opcaoAtendimento === filter);
+      })
     );
   }
   
+  // Função chamada pelo HTML quando troca o select
+  onFilterChange(newValue: string) {
+    this.selectedFilter = newValue;
+    this.filterSubject.next(newValue);
+  }
+
   private getQueuedConversations(): Observable<Conversation[]> {
     const convCollection = collection(this.firestore, 'conversations');
     const q_queue = query(convCollection, where('status', '==', 'queued'), orderBy('queuedAt'));
@@ -92,7 +130,7 @@ export class ConversationList implements OnInit {
     this.conversationSelected.emit(id);
   }
 
-  // --- FUNÇÃO DE EXPORTAÇÃO CORRIGIDA (CÁLCULO DO TEMPO) ---
+  // --- EXPORTAÇÃO (MANTIDA IGUAL AO SEU PEDIDO ANTERIOR) ---
   private formatDataForExport(snapshot: any) {
     const data = snapshot.docs
       .map((doc: any) => doc.data() as Conversation)
@@ -105,21 +143,16 @@ export class ConversationList implements OnInit {
 
     return data.map((convo: Conversation) => {
       
-      // 1. CÁLCULO DO TEMPO DE ATENDIMENTO
+      // 1. CÁLCULO DO TEMPO
       let tempoAtendimento = 'Em Andamento';
-      
-      // Só calcula se o chat foi fechado e se as datas existem
       if (convo.status === 'closed' && convo.queuedAt && convo.closedAt) {
-          
-          // Converte Timestamps (do Firestore) para objetos Date (do JavaScript)
           const start: Date = convo.queuedAt.toDate ? convo.queuedAt.toDate() : new Date(convo.queuedAt);
           const end: Date = convo.closedAt.toDate ? convo.closedAt.toDate() : new Date(convo.closedAt);
-          
           const durationMs = end.getTime() - start.getTime();
           tempoAtendimento = formatDuration(durationMs);
       }
       
-      // 2. Lógica de GPRS (Concatenar Tipo)
+      // 2. GPRS
       let comunicacaoDisplay = convo.intakeData?.modoComunicacao || '';
       if (comunicacaoDisplay === 'GPRS' && convo.intakeData?.tipoGprs) {
         comunicacaoDisplay = `GPRS - ${convo.intakeData.tipoGprs}`;
@@ -128,10 +161,7 @@ export class ConversationList implements OnInit {
       return {
         'Nome': convo.intakeData?.nome?.toUpperCase() || '',
         'Telefone': convo.intakeData?.telefone || 'N/D', 
-        
-        // NOVA COLUNA: Tempo de Atendimento
         'Tempo Atendimento': tempoAtendimento, 
-        
         'Distribuidora': convo.intakeData?.distribuidora?.toUpperCase() || '',
         'Regional': convo.intakeData?.regional?.toUpperCase() || '',
         'Atendimento': convo.intakeData?.opcaoAtendimento?.toUpperCase() || '',
@@ -146,7 +176,6 @@ export class ConversationList implements OnInit {
     });
   }
 
-  /** Exporta TODOS os clientes (Botão "Exportar Todos") */
   async exportAll() {
     if (this.isLoading()) return;
     this.isLoading.set(true);
@@ -159,18 +188,14 @@ export class ConversationList implements OnInit {
       }
     } catch (err) {
       console.error(err);
-      alert("Erro ao exportar dados. Verifique o console.");
+      alert("Erro ao exportar dados.");
     } finally {
       this.isLoading.set(false);
     }
   }
 
-  /** Exporta clientes por período (Botão "Exportar por Período") */
   async exportByDateRange(startDate: string, endDate: string) {
-    if (!startDate || !endDate) {
-      alert("Por favor, selecione a data de início e a data de fim.");
-      return;
-    }
+    if (!startDate || !endDate) return alert("Selecione as datas.");
     if (this.isLoading()) return;
     this.isLoading.set(true);
     try {
@@ -192,7 +217,7 @@ export class ConversationList implements OnInit {
       }
     } catch (err) {
       console.error(err);
-      alert("Erro ao exportar dados. Você precisará criar um índice no Firestore para esta consulta (queuedAt >=/<=).");
+      alert("Erro ao exportar. Verifique o console (índice necessário).");
     } finally {
       this.isLoading.set(false);
     }

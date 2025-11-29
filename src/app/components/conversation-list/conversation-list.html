@@ -23,6 +23,20 @@
   </div>
 </div>
 
+<div class="filter-container" style="padding: 10px 15px; border-bottom: 1px solid #ddd; background: #0e2746;">
+  <label style="font-size: 0.85rem; font-weight: bold; color: #FFF; display: block; margin-bottom: 5px;">
+    Filtrar por Tipo de Atendimento:
+  </label>
+  <select 
+    [ngModel]="selectedFilter" 
+    (ngModelChange)="onFilterChange($event)"
+    style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.9rem;">
+    <option value="">TODOS OS ATENDIMENTOS</option>
+    @for (option of filterOptions; track option) {
+      <option [value]="option">{{ option }}</option>
+    }
+  </select>
+</div>
 <div class="lists-wrapper">
   
   <h4 class="list-header">Fila de Atendimento</h4>
