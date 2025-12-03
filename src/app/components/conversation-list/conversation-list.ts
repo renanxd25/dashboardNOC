@@ -1,8 +1,8 @@
-import { Component, EventEmitter, inject, OnInit, Output, OnDestroy, signal } from '@angular/core';
+import { Component, EventEmitter, inject, OnInit, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; // <--- IMPORTANTE PARA O SELECT FUNCIONAR
-import { Observable, Subscription, of, switchMap, BehaviorSubject, combineLatest, map } from 'rxjs';
-import { Conversation, IntakeData } from '../../models';
+import { FormsModule } from '@angular/forms';
+import { Observable, of, BehaviorSubject, combineLatest, map, switchMap } from 'rxjs';
+import { Conversation } from '../../models';
 import { 
   Firestore, 
   collection, 
@@ -10,14 +10,11 @@ import {
   query, 
   orderBy,
   where,
-  doc, 	  
-  updateDoc,
   getDocs, 
   Timestamp
 } from '@angular/fire/firestore';
-import { Auth, authState, User } from '@angular/fire/auth';
+import { Auth, authState } from '@angular/fire/auth';
 import { ExportService } from '../../services/export'; 
-
 
 // --- FUNÇÃO AUXILIAR PARA FORMATAR O TEMPO ---
 function formatDuration(ms: number): string {
@@ -31,11 +28,10 @@ function formatDuration(ms: number): string {
 }
 // ---------------------------------------------
 
-
 @Component({
   selector: 'app-conversation-list',
   standalone: true,
-  imports: [CommonModule, FormsModule], // <--- ADICIONEI FORMSMODULE
+  imports: [CommonModule, FormsModule],
   templateUrl: './conversation-list.html', 
   styleUrl: './conversation-list.scss'
 })
@@ -51,10 +47,9 @@ export class ConversationList implements OnInit {
   activeConversations$!: Observable<Conversation[]>;
 
   // --- LÓGICA DO FILTRO ---
-  filterSubject = new BehaviorSubject<string>(''); // Começa vazio (todos)
+  filterSubject = new BehaviorSubject<string>(''); 
   selectedFilter: string = '';
   
-  // Suas opções de atendimento (baseado no seu HTML)
   filterOptions = [
     'COMISSIONAMENTO',
     'VERIFICAR COMUNICAÇÃO',
@@ -77,7 +72,6 @@ export class ConversationList implements OnInit {
     this.queuedConversations$ = combineLatest([rawQueued$, this.filterSubject]).pipe(
       map(([conversations, filter]) => {
         if (!filter) return conversations;
-        // Filtra ignorando maiúsculas/minúsculas por segurança
         return conversations.filter(c => c.intakeData?.opcaoAtendimento === filter);
       })
     );
@@ -95,7 +89,6 @@ export class ConversationList implements OnInit {
     );
   }
   
-  // Função chamada pelo HTML quando troca o select
   onFilterChange(newValue: string) {
     this.selectedFilter = newValue;
     this.filterSubject.next(newValue);
@@ -103,34 +96,28 @@ export class ConversationList implements OnInit {
 
   private getQueuedConversations(): Observable<Conversation[]> {
     const convCollection = collection(this.firestore, 'conversations');
+    // Filtra apenas status 'queued'
     const q_queue = query(convCollection, where('status', '==', 'queued'), orderBy('queuedAt'));
     return collectionData(q_queue, { idField: 'id' }) as Observable<Conversation[]>;
   }
 
   private getActiveConversations(adminId: string): Observable<Conversation[]> {
     const convCollection = collection(this.firestore, 'conversations');
+    // Filtra apenas status 'active' E que pertençam a este admin
     const q_active = query(convCollection, where('status', '==', 'active'), where('attendedBy', '==', adminId), orderBy('lastMessage.timestamp', 'desc'));
     return collectionData(q_active, { idField: 'id' }) as Observable<Conversation[]>;
   }
 
-  async selectConversation(id: string, status: 'queued' | 'active') {
-    const user = this.auth.currentUser;
-    if (!user) return console.error("Não está logado. Não é possível aceitar o chat.");
-
+  // --- ALTERAÇÃO PRINCIPAL AQUI ---
+  // Removemos o 'async' e a lógica de updateDoc.
+  // Agora só emitimos o evento para abrir a janela.
+  selectConversation(id: string, status: 'queued' | 'active') {
     this.currentSelectedId = id; 
-    
-    if (status === 'queued') {
-      const convDocRef = doc(this.firestore, 'conversations', id);
-      await updateDoc(convDocRef, {
-        status: 'active', 
-        attendedBy: user.uid, 
-        unreadByDashboard: false
-      });
-    }
     this.conversationSelected.emit(id);
   }
+  // -------------------------------
 
-  // --- EXPORTAÇÃO (MANTIDA IGUAL AO SEU PEDIDO ANTERIOR) ---
+  // --- EXPORTAÇÃO ---
   private formatDataForExport(snapshot: any) {
     const data = snapshot.docs
       .map((doc: any) => doc.data() as Conversation)

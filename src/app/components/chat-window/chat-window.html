@@ -16,19 +16,30 @@
       <div class="header-actions">
         
         <button 
-          *ngIf="currentConversation?.status !== 'closed' && !isEditing()" 
+          *ngIf="currentConversation?.status !== 'active' && currentConversation?.status !== 'closed' && !isEditing()"
+          (click)="startAttendance()"
+          class="start-chat-btn"
+          title="Iniciar Atendimento"
+          style="margin-right: 10px; background-color: #2ecc71; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+          <i class="fa-solid fa-play"></i> INICIAR
+        </button>
+
+        <button 
+          *ngIf="currentConversation?.status === 'active' && !isEditing()" 
           (click)="sendAutoClosingMessage()" 
           class="auto-msg-btn" 
           title="Enviar aviso de encerramento"
           style="margin-right: 10px; background-color: #f39c12; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">
           <i class="fa-solid fa-bullhorn"></i> Aviso
         </button>
+        
         <button 
-          *ngIf="currentConversation?.status !== 'closed' && !isEditing()" 
+          *ngIf="currentConversation?.status === 'active' && !isEditing()" 
           (click)="endChat()" 
           class="end-chat-btn">
           Encerrar
         </button>
+
         <span *ngIf="currentConversation?.status === 'closed'" class="chat-closed-label">
           Encerrado
         </span>
@@ -162,7 +173,7 @@
       class="message-form" 
       #chatForm="ngForm" 
       (ngSubmit)="sendMessage(chatForm)"
-      *ngIf="currentConversation?.status !== 'closed'"> 
+      *ngIf="currentConversation?.status === 'active'"> 
       
       <button type="button" class="icon-btn" (click)="fileInput.click()" [disabled]="isUploading() || isRecording()" title="Anexar arquivo">
         <i class="fa-solid fa-paperclip"></i>
@@ -179,6 +190,10 @@
         <i class="fa-solid fa-paper-plane"></i>
       </button>
     </form>
+    
+    <div *ngIf="currentConversation?.status !== 'active' && currentConversation?.status !== 'closed'" style="text-align: center; padding: 20px; color: gray;">
+        <p>Clique em <strong>INICIAR</strong> para responder este atendimento.</p>
+    </div>
 
   </ng-container>
 </div>
