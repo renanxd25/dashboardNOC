@@ -143,6 +143,40 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     this.chatForm.reset();
   }
 
+  // --- NOVA FUNÇÃO: MENSAGEM AUTOMÁTICA DE ENCERRAMENTO ---
+  async sendAutoClosingMessage() {
+    if (!this.conversationId || !this.currentAdminId) return;
+
+    // Texto da mensagem automática
+    const messageText = "O atendimento será encerrado, por favor, certifique que todas as midias necessarias para você tenham sido baixadas em seu dispositivo";
+
+    const newMessage: Message = {
+      text: messageText,
+      senderId: this.currentAdminId,
+      timestamp: serverTimestamp() as Timestamp
+    };
+
+    try {
+      // Salva a mensagem na coleção
+      const messagesCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
+      await addDoc(messagesCollection, newMessage);
+
+      // Atualiza a conversa com a última mensagem
+      const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
+      await updateDoc(convDocRef, {
+        lastMessage: { text: messageText, timestamp: serverTimestamp() },
+        status: 'active',
+        unreadByDashboard: false
+      });
+
+      this.shouldScrollToBottom = true;
+    } catch (error) {
+      console.error("Erro ao enviar mensagem automática:", error);
+      alert("Erro ao enviar aviso.");
+    }
+  }
+  // --------------------------------------------------------
+
   onFileSelected(event: any) {
     const file: File = event.target.files[0];
     if (file && this.conversationId) {

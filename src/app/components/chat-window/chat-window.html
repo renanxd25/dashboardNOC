@@ -14,6 +14,15 @@
       </div>
       
       <div class="header-actions">
+        
+        <button 
+          *ngIf="currentConversation?.status !== 'closed' && !isEditing()" 
+          (click)="sendAutoClosingMessage()" 
+          class="auto-msg-btn" 
+          title="Enviar aviso de encerramento"
+          style="margin-right: 10px; background-color: #f39c12; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">
+          <i class="fa-solid fa-bullhorn"></i> Aviso
+        </button>
         <button 
           *ngIf="currentConversation?.status !== 'closed' && !isEditing()" 
           (click)="endChat()" 
