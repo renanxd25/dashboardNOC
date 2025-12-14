@@ -53,6 +53,19 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: any[] = [];
 
+  // === NOVAS VARIÁVEIS PARA O MODAL DE ENCERRAMENTO ===
+  showClosingModal = signal(false);
+  isClosing = signal(false);
+  
+  // Objeto para armazenar os dados do formulário do popup
+  closingData = {
+    statusComunicacao: 'SIM',
+    validacaoAssertiva: 'SIM',
+    obsProblema: '',
+    obsSolucao: ''
+  };
+  // ====================================================
+
   constructor() {
     this.authSub = authState(this.auth).pipe(take(1)).subscribe(user => {
       this.currentAdminId = user ? user.uid : null;
@@ -85,6 +98,9 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       
       // Abre os dados do cliente automaticamente ao trocar de conversa
       this.isIntakeExpanded.set(true); 
+      
+      // Reseta modal se trocar de conversa
+      this.showClosingModal.set(false);
 
     } else if (!this.conversationId) {
       this.currentConversation = null;
@@ -118,7 +134,7 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     this.messages$ = collectionData(q, { idField: 'id' }) as Observable<Message[]>;
   }
 
-  // --- FUNÇÃO MODIFICADA: INICIAR ATENDIMENTO COM DADOS ---
+  // --- FUNÇÃO: INICIAR ATENDIMENTO COM DADOS ---
   async startAttendance() {
     if (!this.conversationId || !this.currentAdminId) return;
 
@@ -134,7 +150,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         const data = this.currentConversation.intakeData;
         
         // Formatação com quebra de linha. 
-        // OBS: O pipe 'preformat' no HTML deve converter \n para <br>
         autoMessageText += `\n\nSegue abaixo a confirmação dos dados:\n`;
         autoMessageText += `Nome: ${data.nome}\n`;
         autoMessageText += `Telefone: ${data.telefone || 'N/D'}\n`;
@@ -184,7 +199,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       alert("Não foi possível iniciar o atendimento.");
     }
   }
-  // ----------------------------------------
 
   async sendMessage(form: NgForm) {
     if (form.invalid || !this.conversationId || !this.currentAdminId) return;
@@ -338,11 +352,34 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     }
   }
 
-  async endChat() {
+  // === NOVOS MÉTODOS PARA O ENCERRAMENTO COM POPUP ===
+
+  // 1. Abre o modal
+  openClosingModal() {
+    // Reseta o formulário com valores padrão
+    this.closingData = {
+      statusComunicacao: 'SIM',
+      validacaoAssertiva: 'SIM',
+      obsProblema: '',
+      obsSolucao: ''
+    };
+    this.showClosingModal.set(true);
+  }
+
+  // 2. Fecha o modal sem fazer nada
+  closeClosingModal() {
+    this.showClosingModal.set(false);
+  }
+
+  // 3. Ação do botão "OK" do Modal (Antigo endChat modificado)
+  async confirmEndChat() {
     if (!this.conversationId || !this.currentAdminId) return;
-    if (!confirm("Tem certeza? Isso apagará todas as mídias desta conversa permanentemente.")) return;
+    
+    // Bloqueia o botão para evitar cliques duplos
+    this.isClosing.set(true);
 
     try {
+      // --- Lógica de deleção de mídias (Mantida do original) ---
       const msgsCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
       const snapshot = await getDocs(msgsCollection);
 
@@ -356,8 +393,8 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
           } catch(e) { console.error(e); }
         }
       });
-
       await Promise.all(deletePromises);
+      // ---------------------------------------------------------
 
       const endMessageText = "Atendimento encerrado pelo nosso agente.";
       const newMessage: Message = {
@@ -369,21 +406,40 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
 
       const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
       
+      // Atualiza o documento com status E com os novos dados do popup (closingFeedback)
       await updateDoc(convDocRef, {
         status: 'closed',
         attendedBy: null, 
         closedAt: serverTimestamp(), 
         lastMessage: { text: endMessageText, timestamp: serverTimestamp() },
-        unreadByDashboard: false
+        unreadByDashboard: false,
+        
+        // SALVANDO OS DADOS DO POPUP NO FIRESTORE
+        closingFeedback: {
+          statusComunicacao: this.closingData.statusComunicacao,
+          validacaoAssertiva: this.closingData.validacaoAssertiva,
+          obsProblema: this.closingData.obsProblema || 'Não informado',
+          obsSolucao: this.closingData.obsSolucao || 'Não informado'
+        }
       });
 
       this.isEditing.set(false); 
+      this.showClosingModal.set(false); // Fecha o modal
 
     } catch (error) {
       console.error("Erro ao encerrar:", error);
-      alert("Houve um erro. Verifique o console.");
+      alert("Houve um erro ao encerrar o atendimento.");
+    } finally {
+      this.isClosing.set(false);
     }
   }
+
+  // =======================================================
+
+  // Mantendo método endChat original (renomeie no HTML para openClosingModal ou remova este se não for mais usado)
+  // Deixei aqui comentado caso você queira a referência antiga, mas o código acima (confirmEndChat) substitui ele.
+  /* async endChat() { ... } 
+  */
 
   toggleEdit(): void {
     if (!this.currentConversation?.intakeData) return;

@@ -111,7 +111,7 @@ export class ConversationList implements OnInit {
     this.conversationSelected.emit(id);
   }
 
-  // --- ALTERAÇÃO APLICADA AQUI NA EXPORTAÇÃO ---
+  // --- FUNÇÃO MODIFICADA: AGORA EXPORTA AS NOVAS COLUNAS DO POPUP ---
   private formatDataForExport(snapshot: any) {
     const data = snapshot.docs
       .map((doc: any) => doc.data() as Conversation)
@@ -124,7 +124,7 @@ export class ConversationList implements OnInit {
 
     return data.map((convo: Conversation) => {
       
-      // 1. CÁLCULO DO TEMPO BASEADO NO CLIQUE DO BOTÃO (STARTED AT)
+      // 1. CÁLCULO DO TEMPO
       let tempoAtendimento = 'Não calculado';
 
       // Se o atendimento não foi fechado ainda
@@ -134,7 +134,6 @@ export class ConversationList implements OnInit {
       // Se foi fechado, tentamos calcular
       else if (convo.closedAt) {
           
-          // VERIFICAÇÃO PRINCIPAL: Usa startedAt em vez de queuedAt
           if (convo.startedAt) {
             const start: Date = convo.startedAt.toDate ? convo.startedAt.toDate() : new Date(convo.startedAt);
             const end: Date = convo.closedAt.toDate ? convo.closedAt.toDate() : new Date(convo.closedAt);
@@ -142,7 +141,6 @@ export class ConversationList implements OnInit {
             const durationMs = end.getTime() - start.getTime();
             tempoAtendimento = formatDuration(durationMs);
           } else {
-            // Tratamento para conversas antigas que não tinham o campo startedAt
             tempoAtendimento = 'N/A (Sem registro de início)';
           }
       }
@@ -152,11 +150,15 @@ export class ConversationList implements OnInit {
       if (comunicacaoDisplay === 'GPRS' && convo.intakeData?.tipoGprs) {
         comunicacaoDisplay = `GPRS - ${convo.intakeData.tipoGprs}`;
       }
+
+      // 3. RECUPERANDO OS DADOS DO POPUP (Feedback de Encerramento)
+      // Usamos (convo as any) caso a interface Conversation ainda não tenha o campo tipado
+      const feedback = (convo as any).closingFeedback || {}; 
       
       return {
         'Nome': convo.intakeData?.nome?.toUpperCase() || '',
         'Telefone': convo.intakeData?.telefone || 'N/D', 
-        'Tempo Atendimento': tempoAtendimento, // Agora reflete Início -> Fim
+        'Tempo Atendimento': tempoAtendimento,
         'Distribuidora': convo.intakeData?.distribuidora?.toUpperCase() || '',
         'Regional': convo.intakeData?.regional?.toUpperCase() || '',
         'Atendimento': convo.intakeData?.opcaoAtendimento?.toUpperCase() || '',
@@ -167,7 +169,13 @@ export class ConversationList implements OnInit {
         'IP': convo.intakeData?.ip || '', 
         'Porta': convo.intakeData?.porta || '', 
         'Data Atendimento': convo.queuedAt?.toDate().toLocaleDateString('pt-BR') || 'Data não registrada',
-        'Hora Início (Clique)': convo.startedAt?.toDate().toLocaleTimeString('pt-BR') || '-' // Coluna extra para conferência
+        'Hora Início': convo.startedAt?.toDate().toLocaleTimeString('pt-BR') || '-',
+
+        // --- NOVAS COLUNAS ADICIONADAS ---
+        'Status Comunicação (Final)': feedback.statusComunicacao || '-',
+        'Validação Assertiva': feedback.validacaoAssertiva || '-',
+        'Obs. Problema': feedback.obsProblema || '-',
+        'Obs. Solução': feedback.obsSolucao || '-'
       };
     });
   }

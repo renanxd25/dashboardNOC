@@ -35,7 +35,7 @@
         
         <button 
           *ngIf="currentConversation?.status === 'active' && !isEditing()" 
-          (click)="endChat()" 
+          (click)="openClosingModal()" 
           class="end-chat-btn">
           Encerrar
         </button>
@@ -196,4 +196,60 @@
     </div>
 
   </ng-container>
+
+  <div *ngIf="showClosingModal()" class="modal-overlay">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 20px; color: #333;">Finalizar Atendimento</h3>
+      <p style="margin-bottom: 20px; color: #666;">Preencha os dados abaixo para confirmar o encerramento.</p>
+
+      <form (ngSubmit)="confirmEndChat()" #closingForm="ngForm">
+        
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label style="display:block; font-weight:bold; margin-bottom: 5px;">Status de Comunicação:</label>
+          <select [(ngModel)]="closingData.statusComunicacao" name="statusComunicacao" required style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+            <option value="SIM">Sim</option>
+            <option value="NÃO">Não</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label style="display:block; font-weight:bold; margin-bottom: 5px;">Validação Assertiva de Solicitação:</label>
+          <select [(ngModel)]="closingData.validacaoAssertiva" name="validacaoAssertiva" required style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+            <option value="SIM">Sim</option>
+            <option value="NÃO">Não</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label style="display:block; font-weight:bold; margin-bottom: 5px;">Observação de Problema:</label>
+          <textarea 
+            [(ngModel)]="closingData.obsProblema" 
+            name="obsProblema" 
+            rows="3" 
+            placeholder="Descreva o problema encontrado..."
+            style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; resize: vertical;"></textarea>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label style="display:block; font-weight:bold; margin-bottom: 5px;">Observação de Solução:</label>
+          <textarea 
+            [(ngModel)]="closingData.obsSolucao" 
+            name="obsSolucao" 
+            rows="3" 
+            placeholder="Descreva a solução aplicada..."
+            style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; resize: vertical;"></textarea>
+        </div>
+
+        <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn-cancel" (click)="closeClosingModal()" style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Cancelar</button>
+          
+          <button type="submit" class="btn-confirm" [disabled]="isClosing()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+            {{ isClosing() ? 'Encerrando...' : 'OK / Encerrar' }}
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
 </div>
