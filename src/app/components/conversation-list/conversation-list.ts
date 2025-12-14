@@ -18,13 +18,13 @@ import { ExportService } from '../../services/export';
 
 // --- FUNÇÃO AUXILIAR PARA FORMATAR O TEMPO ---
 function formatDuration(ms: number): string {
-    if (ms < 0) return '00:00:00';
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    const pad = (num: number) => num.toString().padStart(2, '0');
-    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  if (ms < 0) return '00:00:00';
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (num: number) => num.toString().padStart(2, '0');
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 // ---------------------------------------------
 
@@ -96,28 +96,22 @@ export class ConversationList implements OnInit {
 
   private getQueuedConversations(): Observable<Conversation[]> {
     const convCollection = collection(this.firestore, 'conversations');
-    // Filtra apenas status 'queued'
     const q_queue = query(convCollection, where('status', '==', 'queued'), orderBy('queuedAt'));
     return collectionData(q_queue, { idField: 'id' }) as Observable<Conversation[]>;
   }
 
   private getActiveConversations(adminId: string): Observable<Conversation[]> {
     const convCollection = collection(this.firestore, 'conversations');
-    // Filtra apenas status 'active' E que pertençam a este admin
     const q_active = query(convCollection, where('status', '==', 'active'), where('attendedBy', '==', adminId), orderBy('lastMessage.timestamp', 'desc'));
     return collectionData(q_active, { idField: 'id' }) as Observable<Conversation[]>;
   }
 
-  // --- ALTERAÇÃO PRINCIPAL AQUI ---
-  // Removemos o 'async' e a lógica de updateDoc.
-  // Agora só emitimos o evento para abrir a janela.
   selectConversation(id: string, status: 'queued' | 'active') {
     this.currentSelectedId = id; 
     this.conversationSelected.emit(id);
   }
-  // -------------------------------
 
-  // --- EXPORTAÇÃO ---
+  // --- ALTERAÇÃO APLICADA AQUI NA EXPORTAÇÃO ---
   private formatDataForExport(snapshot: any) {
     const data = snapshot.docs
       .map((doc: any) => doc.data() as Conversation)
@@ -130,13 +124,27 @@ export class ConversationList implements OnInit {
 
     return data.map((convo: Conversation) => {
       
-      // 1. CÁLCULO DO TEMPO
-      let tempoAtendimento = 'Em Andamento';
-      if (convo.status === 'closed' && convo.queuedAt && convo.closedAt) {
-          const start: Date = convo.queuedAt.toDate ? convo.queuedAt.toDate() : new Date(convo.queuedAt);
-          const end: Date = convo.closedAt.toDate ? convo.closedAt.toDate() : new Date(convo.closedAt);
-          const durationMs = end.getTime() - start.getTime();
-          tempoAtendimento = formatDuration(durationMs);
+      // 1. CÁLCULO DO TEMPO BASEADO NO CLIQUE DO BOTÃO (STARTED AT)
+      let tempoAtendimento = 'Não calculado';
+
+      // Se o atendimento não foi fechado ainda
+      if (convo.status !== 'closed') {
+        tempoAtendimento = 'Em Andamento';
+      } 
+      // Se foi fechado, tentamos calcular
+      else if (convo.closedAt) {
+          
+          // VERIFICAÇÃO PRINCIPAL: Usa startedAt em vez de queuedAt
+          if (convo.startedAt) {
+            const start: Date = convo.startedAt.toDate ? convo.startedAt.toDate() : new Date(convo.startedAt);
+            const end: Date = convo.closedAt.toDate ? convo.closedAt.toDate() : new Date(convo.closedAt);
+            
+            const durationMs = end.getTime() - start.getTime();
+            tempoAtendimento = formatDuration(durationMs);
+          } else {
+            // Tratamento para conversas antigas que não tinham o campo startedAt
+            tempoAtendimento = 'N/A (Sem registro de início)';
+          }
       }
       
       // 2. GPRS
@@ -148,7 +156,7 @@ export class ConversationList implements OnInit {
       return {
         'Nome': convo.intakeData?.nome?.toUpperCase() || '',
         'Telefone': convo.intakeData?.telefone || 'N/D', 
-        'Tempo Atendimento': tempoAtendimento, 
+        'Tempo Atendimento': tempoAtendimento, // Agora reflete Início -> Fim
         'Distribuidora': convo.intakeData?.distribuidora?.toUpperCase() || '',
         'Regional': convo.intakeData?.regional?.toUpperCase() || '',
         'Atendimento': convo.intakeData?.opcaoAtendimento?.toUpperCase() || '',
@@ -159,6 +167,7 @@ export class ConversationList implements OnInit {
         'IP': convo.intakeData?.ip || '', 
         'Porta': convo.intakeData?.porta || '', 
         'Data Atendimento': convo.queuedAt?.toDate().toLocaleDateString('pt-BR') || 'Data não registrada',
+        'Hora Início (Clique)': convo.startedAt?.toDate().toLocaleTimeString('pt-BR') || '-' // Coluna extra para conferência
       };
     });
   }
@@ -204,7 +213,7 @@ export class ConversationList implements OnInit {
       }
     } catch (err) {
       console.error(err);
-      alert("Erro ao exportar. Verifique o console (índice necessário).");
+      alert("Erro ao exportar. Verifique o console.");
     } finally {
       this.isLoading.set(false);
     }

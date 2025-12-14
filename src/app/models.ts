@@ -26,6 +26,7 @@ export interface Conversation {
   id?: string;
   userId: string;
   userName: string;
+  startedAt?: any;
   status: 'loading' | 'pending_intake' | 'queued' | 'active' | 'closed';
   
   createdAt?: any; // Essencial: data de criação para o Excel

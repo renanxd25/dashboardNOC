@@ -118,25 +118,70 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     this.messages$ = collectionData(q, { idField: 'id' }) as Observable<Message[]>;
   }
 
-  // --- NOVA FUNÇÃO: INICIAR ATENDIMENTO ---
+  // --- FUNÇÃO MODIFICADA: INICIAR ATENDIMENTO COM DADOS ---
   async startAttendance() {
     if (!this.conversationId || !this.currentAdminId) return;
 
     try {
-        const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
+      const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
+      const messagesCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
+      
+      // 1. Prepara a mensagem automática
+      let autoMessageText = `Oi ${this.currentConversation?.userName || 'Cliente'} seu atendimento vai ser iniciado..`;
+
+      // 2. Se houver dados de intake, formata e adiciona à mensagem
+      if (this.currentConversation?.intakeData) {
+        const data = this.currentConversation.intakeData;
         
-        // Atualiza o status para active (move para fila de atendimento)
-        // e define quem está atendendo
-        await updateDoc(convDocRef, {
-            status: 'active',
-            attendedBy: this.currentAdminId,
-            startedAt: serverTimestamp(),
-            unreadByDashboard: false
-        });
+        // Formatação com quebra de linha. 
+        // OBS: O pipe 'preformat' no HTML deve converter \n para <br>
+        autoMessageText += `\n\nSegue abaixo a confirmação dos dados:\n`;
+        autoMessageText += `Nome: ${data.nome}\n`;
+        autoMessageText += `Telefone: ${data.telefone || 'N/D'}\n`;
+        autoMessageText += `Distribuidora: ${data.distribuidora}\n`;
+        autoMessageText += `Regional: ${data.regional}\n`;
+        autoMessageText += `Atendimento: ${data.opcaoAtendimento}\n`;
+        autoMessageText += `SE/AL: ${data.siglaSEAL}\n`;
+        autoMessageText += `Componente: ${data.componente}\n`;
+        autoMessageText += `Modelo Controle: ${data.modeloControle}\n`;
+        
+        let comm = data.modoComunicacao;
+        if (comm === 'GPRS' && data.tipoGprs) {
+          comm += ` - ${data.tipoGprs}`;
+        }
+        autoMessageText += `Comunicação: ${comm}\n`;
+        
+        autoMessageText += `IP: ${data.ip}\n`;
+        autoMessageText += `Porta: ${data.porta}`;
+      }
+
+      // 3. Cria o objeto da mensagem
+      const newMessage: Message = {
+        text: autoMessageText,
+        senderId: this.currentAdminId,
+        timestamp: serverTimestamp() as Timestamp
+      };
+
+      // 4. Adiciona a mensagem na coleção
+      await addDoc(messagesCollection, newMessage);
+
+      // 5. Atualiza o status para active, define o atendente e atualiza a lastMessage
+      await updateDoc(convDocRef, {
+        status: 'active',
+        attendedBy: this.currentAdminId,
+        startedAt: serverTimestamp(),
+        unreadByDashboard: false,
+        lastMessage: { 
+          text: "Atendimento iniciado (Dados enviados)", 
+          timestamp: serverTimestamp() 
+        }
+      });
+      
+      this.shouldScrollToBottom = true;
 
     } catch (error) {
-        console.error("Erro ao iniciar atendimento:", error);
-        alert("Não foi possível iniciar o atendimento.");
+      console.error("Erro ao iniciar atendimento:", error);
+      alert("Não foi possível iniciar o atendimento.");
     }
   }
   // ----------------------------------------
@@ -294,51 +339,52 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   }
 
   async endChat() {
-  if (!this.conversationId || !this.currentAdminId) return;
-  if (!confirm("Tem certeza? Isso apagará todas as mídias desta conversa permanentemente.")) return;
+    if (!this.conversationId || !this.currentAdminId) return;
+    if (!confirm("Tem certeza? Isso apagará todas as mídias desta conversa permanentemente.")) return;
 
-  try {
-    const msgsCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
-    const snapshot = await getDocs(msgsCollection);
+    try {
+      const msgsCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
+      const snapshot = await getDocs(msgsCollection);
 
-    const deletePromises: Promise<void>[] = [];
-    snapshot.forEach(docSnap => {
-      const msg = docSnap.data() as Message;
-      if (msg.mediaUrl) {
-        try {
-          const fileRef = ref(this.storage, msg.mediaUrl);
-          deletePromises.push(deleteObject(fileRef).catch(e => console.warn("Erro ao deletar:", e)));
-        } catch(e) { console.error(e); }
-      }
-    });
+      const deletePromises: Promise<void>[] = [];
+      snapshot.forEach(docSnap => {
+        const msg = docSnap.data() as Message;
+        if (msg.mediaUrl) {
+          try {
+            const fileRef = ref(this.storage, msg.mediaUrl);
+            deletePromises.push(deleteObject(fileRef).catch(e => console.warn("Erro ao deletar:", e)));
+          } catch(e) { console.error(e); }
+        }
+      });
 
-    await Promise.all(deletePromises);
+      await Promise.all(deletePromises);
 
-    const endMessageText = "Atendimento encerrado pelo nosso agente.";
-    const newMessage: Message = {
-      text: endMessageText,
-      senderId: this.currentAdminId,
-      timestamp: serverTimestamp() as Timestamp
-    };
-    await addDoc(msgsCollection, newMessage);
+      const endMessageText = "Atendimento encerrado pelo nosso agente.";
+      const newMessage: Message = {
+        text: endMessageText,
+        senderId: this.currentAdminId,
+        timestamp: serverTimestamp() as Timestamp
+      };
+      await addDoc(msgsCollection, newMessage);
 
-    const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
-    
-    await updateDoc(convDocRef, {
-      status: 'closed',
-      attendedBy: null, 
-      closedAt: serverTimestamp(), 
-      lastMessage: { text: endMessageText, timestamp: serverTimestamp() },
-      unreadByDashboard: false
-    });
+      const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
+      
+      await updateDoc(convDocRef, {
+        status: 'closed',
+        attendedBy: null, 
+        closedAt: serverTimestamp(), 
+        lastMessage: { text: endMessageText, timestamp: serverTimestamp() },
+        unreadByDashboard: false
+      });
 
-    this.isEditing.set(false); 
+      this.isEditing.set(false); 
 
-  } catch (error) {
-    console.error("Erro ao encerrar:", error);
-    alert("Houve um erro. Verifique o console.");
+    } catch (error) {
+      console.error("Erro ao encerrar:", error);
+      alert("Houve um erro. Verifique o console.");
+    }
   }
-}
+
   toggleEdit(): void {
     if (!this.currentConversation?.intakeData) return;
     if (this.isEditing()) {
