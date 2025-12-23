@@ -6,7 +6,11 @@ import { Conversation, Message, IntakeData } from '../../models';
 import { 
   Firestore, collection, collectionData, query, 
   orderBy, addDoc, serverTimestamp, doc, updateDoc,
-  onSnapshot, Timestamp, Unsubscribe, getDocs
+  onSnapshot, Timestamp, Unsubscribe, getDocs,
+  // --- NOVOS IMPORTS ADICIONADOS ---
+  where, 
+  getCountFromServer 
+  // ---------------------------------
 } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
 import { take } from 'rxjs/operators';
@@ -134,9 +138,34 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     this.messages$ = collectionData(q, { idField: 'id' }) as Observable<Message[]>;
   }
 
-  // --- FUNÇÃO: INICIAR ATENDIMENTO COM DADOS ---
+  // --- FUNÇÃO MODIFICADA: INICIAR ATENDIMENTO COM TRAVA DE LIMITE ---
   async startAttendance() {
     if (!this.conversationId || !this.currentAdminId) return;
+
+    // === INÍCIO DA IMPLEMENTAÇÃO DA TRAVA (MÁXIMO 3) ===
+    try {
+      // Cria uma query para buscar atendimentos ativos DO USUÁRIO ATUAL
+      const activeChatsQuery = query(
+        collection(this.firestore, 'conversations'),
+        where('status', '==', 'active'),
+        where('attendedBy', '==', this.currentAdminId)
+      );
+
+      // Conta quantos documentos existem nessa query de forma otimizada (Server Side)
+      const snapshot = await getCountFromServer(activeChatsQuery);
+      const activeCount = snapshot.data().count;
+
+      // Se tiver 3 ou mais, bloqueia e avisa
+      if (activeCount >= 3) {
+        alert(`⚠️ LIMITE ATINGIDO\n\nVocê já possui ${activeCount} atendimentos em andamento.\nFinalize um atendimento antes de iniciar um novo.`);
+        return; // <--- O RETURN AQUI IMPEDE O RESTO DO CÓDIGO DE RODAR
+      }
+    } catch (err) {
+      console.error("Erro ao verificar limite de atendimentos:", err);
+      alert("Erro ao validar limite de atendimentos. Verifique sua conexão.");
+      return;
+    }
+    // === FIM DA TRAVA ===
 
     try {
       const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
@@ -433,13 +462,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       this.isClosing.set(false);
     }
   }
-
-  // =======================================================
-
-  // Mantendo método endChat original (renomeie no HTML para openClosingModal ou remova este se não for mais usado)
-  // Deixei aqui comentado caso você queira a referência antiga, mas o código acima (confirmEndChat) substitui ele.
-  /* async endChat() { ... } 
-  */
 
   toggleEdit(): void {
     if (!this.currentConversation?.intakeData) return;
