@@ -89,6 +89,16 @@
           [ngClass]="{ 'closed': convo.status === 'closed' }">
           
           <div class="item-header">
+            
+            @if (convo['attendedByEmail']) {
+              <div 
+                class="agent-avatar" 
+                [style.background-color]="getAvatarColor(convo['attendedByEmail'])"
+                [title]="convo['attendedByEmail']">
+                {{ getAvatarInitials(convo['attendedByEmail']) }}
+              </div>
+            }
+
             <h4>{{ convo.userName }}</h4>
             
             @if(convo.intakeData) {

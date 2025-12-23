@@ -7,15 +7,12 @@ import {
   Firestore, collection, collectionData, query, 
   orderBy, addDoc, serverTimestamp, doc, updateDoc,
   onSnapshot, Timestamp, Unsubscribe, getDocs,
-  // --- NOVOS IMPORTS ADICIONADOS ---
   where, 
   getCountFromServer 
-  // ---------------------------------
 } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
 import { take } from 'rxjs/operators';
 import { Storage, ref, deleteObject, uploadBytesResumable, getDownloadURL } from '@angular/fire/storage';
-// Certifique-se que o caminho do pipe está correto no seu projeto
 import { PreformatPipe } from '../../utils/preformat-pipe'; 
 
 @Component({
@@ -45,7 +42,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
 
   isEditing = signal(false);
   
-  // Controle de visibilidade dos dados do cliente (Intake)
   isIntakeExpanded = signal(true); 
 
   editableData: IntakeData | null = null;
@@ -57,18 +53,15 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: any[] = [];
 
-  // === NOVAS VARIÁVEIS PARA O MODAL DE ENCERRAMENTO ===
   showClosingModal = signal(false);
   isClosing = signal(false);
   
-  // Objeto para armazenar os dados do formulário do popup
   closingData = {
     statusComunicacao: 'SIM',
     validacaoAssertiva: 'SIM',
     obsProblema: '',
     obsSolucao: ''
   };
-  // ====================================================
 
   constructor() {
     this.authSub = authState(this.auth).pipe(take(1)).subscribe(user => {
@@ -86,9 +79,8 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         if (docSnap.exists()) {
           this.currentConversation = { id: docSnap.id, ...docSnap.data() } as Conversation;
           
-          // Se estiver editando e os dados mudarem no banco, cancela edição para evitar conflito
           if (this.isEditing() && docSnap.data()['intakeData'] !== this.editableData) {
-            // Opcional: manter edição ou cancelar.
+            // Lógica de conflito opcional
           }
         } else {
           this.currentConversation = null;
@@ -100,10 +92,8 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       this.isRecording.set(false);
       this.isUploading.set(false);
       
-      // Abre os dados do cliente automaticamente ao trocar de conversa
       this.isIntakeExpanded.set(true); 
       
-      // Reseta modal se trocar de conversa
       this.showClosingModal.set(false);
 
     } else if (!this.conversationId) {
@@ -138,47 +128,42 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     this.messages$ = collectionData(q, { idField: 'id' }) as Observable<Message[]>;
   }
 
-  // --- FUNÇÃO MODIFICADA: INICIAR ATENDIMENTO COM TRAVA DE LIMITE ---
   async startAttendance() {
     if (!this.conversationId || !this.currentAdminId) return;
 
-    // === INÍCIO DA IMPLEMENTAÇÃO DA TRAVA (MÁXIMO 3) ===
     try {
-      // Cria uma query para buscar atendimentos ativos DO USUÁRIO ATUAL
       const activeChatsQuery = query(
         collection(this.firestore, 'conversations'),
         where('status', '==', 'active'),
         where('attendedBy', '==', this.currentAdminId)
       );
 
-      // Conta quantos documentos existem nessa query de forma otimizada (Server Side)
       const snapshot = await getCountFromServer(activeChatsQuery);
       const activeCount = snapshot.data().count;
 
-      // Se tiver 3 ou mais, bloqueia e avisa
       if (activeCount >= 3) {
         alert(`⚠️ LIMITE ATINGIDO\n\nVocê já possui ${activeCount} atendimentos em andamento.\nFinalize um atendimento antes de iniciar um novo.`);
-        return; // <--- O RETURN AQUI IMPEDE O RESTO DO CÓDIGO DE RODAR
+        return; 
       }
     } catch (err) {
       console.error("Erro ao verificar limite de atendimentos:", err);
       alert("Erro ao validar limite de atendimentos. Verifique sua conexão.");
       return;
     }
-    // === FIM DA TRAVA ===
 
     try {
       const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
       const messagesCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
       
-      // 1. Prepara a mensagem automática
+      // <--- ALTERAÇÃO: CAPTURAR O EMAIL DO USUÁRIO LOGADO ---
+      const currentUser = this.auth.currentUser;
+      const adminEmail = currentUser?.email || 'email-nao-detectado';
+      // -----------------------------------------------------
+
       let autoMessageText = `Oi ${this.currentConversation?.userName || 'Cliente'} seu atendimento vai ser iniciado..`;
 
-      // 2. Se houver dados de intake, formata e adiciona à mensagem
       if (this.currentConversation?.intakeData) {
         const data = this.currentConversation.intakeData;
-        
-        // Formatação com quebra de linha. 
         autoMessageText += `\n\nSegue abaixo a confirmação dos dados:\n`;
         autoMessageText += `Nome: ${data.nome}\n`;
         autoMessageText += `Telefone: ${data.telefone || 'N/D'}\n`;
@@ -194,25 +179,24 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
           comm += ` - ${data.tipoGprs}`;
         }
         autoMessageText += `Comunicação: ${comm}\n`;
-        
         autoMessageText += `IP: ${data.ip}\n`;
         autoMessageText += `Porta: ${data.porta}`;
       }
 
-      // 3. Cria o objeto da mensagem
       const newMessage: Message = {
         text: autoMessageText,
         senderId: this.currentAdminId,
         timestamp: serverTimestamp() as Timestamp
       };
 
-      // 4. Adiciona a mensagem na coleção
       await addDoc(messagesCollection, newMessage);
 
-      // 5. Atualiza o status para active, define o atendente e atualiza a lastMessage
       await updateDoc(convDocRef, {
         status: 'active',
         attendedBy: this.currentAdminId,
+        // <--- ALTERAÇÃO: SALVAR O EMAIL NO DOCUMENTO ---
+        attendedByEmail: adminEmail, 
+        // -----------------------------------------------
         startedAt: serverTimestamp(),
         unreadByDashboard: false,
         lastMessage: { 
@@ -381,11 +365,7 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     }
   }
 
-  // === NOVOS MÉTODOS PARA O ENCERRAMENTO COM POPUP ===
-
-  // 1. Abre o modal
   openClosingModal() {
-    // Reseta o formulário com valores padrão
     this.closingData = {
       statusComunicacao: 'SIM',
       validacaoAssertiva: 'SIM',
@@ -395,20 +375,16 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     this.showClosingModal.set(true);
   }
 
-  // 2. Fecha o modal sem fazer nada
   closeClosingModal() {
     this.showClosingModal.set(false);
   }
 
-  // 3. Ação do botão "OK" do Modal (Antigo endChat modificado)
   async confirmEndChat() {
     if (!this.conversationId || !this.currentAdminId) return;
     
-    // Bloqueia o botão para evitar cliques duplos
     this.isClosing.set(true);
 
     try {
-      // --- Lógica de deleção de mídias (Mantida do original) ---
       const msgsCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
       const snapshot = await getDocs(msgsCollection);
 
@@ -423,7 +399,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         }
       });
       await Promise.all(deletePromises);
-      // ---------------------------------------------------------
 
       const endMessageText = "Atendimento encerrado pelo nosso agente.";
       const newMessage: Message = {
@@ -435,7 +410,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
 
       const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
       
-      // Atualiza o documento com status E com os novos dados do popup (closingFeedback)
       await updateDoc(convDocRef, {
         status: 'closed',
         attendedBy: null, 
@@ -443,7 +417,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         lastMessage: { text: endMessageText, timestamp: serverTimestamp() },
         unreadByDashboard: false,
         
-        // SALVANDO OS DADOS DO POPUP NO FIRESTORE
         closingFeedback: {
           statusComunicacao: this.closingData.statusComunicacao,
           validacaoAssertiva: this.closingData.validacaoAssertiva,
@@ -453,7 +426,7 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       });
 
       this.isEditing.set(false); 
-      this.showClosingModal.set(false); // Fecha o modal
+      this.showClosingModal.set(false);
 
     } catch (error) {
       console.error("Erro ao encerrar:", error);

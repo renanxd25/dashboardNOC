@@ -16,7 +16,6 @@ import {
 import { Auth, authState } from '@angular/fire/auth';
 import { ExportService } from '../../services/export'; 
 
-// --- FUNÇÃO AUXILIAR PARA FORMATAR O TEMPO ---
 function formatDuration(ms: number): string {
   if (ms < 0) return '00:00:00';
   const totalSeconds = Math.floor(ms / 1000);
@@ -26,7 +25,6 @@ function formatDuration(ms: number): string {
   const pad = (num: number) => num.toString().padStart(2, '0');
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
-// ---------------------------------------------
 
 @Component({
   selector: 'app-conversation-list',
@@ -42,11 +40,9 @@ export class ConversationList implements OnInit {
   auth: Auth = inject(Auth); 
   exportService: ExportService = inject(ExportService);
 
-  // Observables finais filtrados
   queuedConversations$!: Observable<Conversation[]>;
   activeConversations$!: Observable<Conversation[]>;
 
-  // --- LÓGICA DO FILTRO ---
   filterSubject = new BehaviorSubject<string>(''); 
   selectedFilter: string = '';
   
@@ -58,13 +54,11 @@ export class ConversationList implements OnInit {
     'TROCA DE TECNOLOGIA DE COMUNICAÇÃO',
     'VOLTAR COMUNICAÇÃO'
   ];
-  // ------------------------
 
   currentSelectedId: string | null = null;
   isLoading = signal(false);
 
   ngOnInit() {
-    // 1. FILA DE ESPERA COM FILTRO
     const rawQueued$ = authState(this.auth).pipe(
       switchMap(user => user ? this.getQueuedConversations() : of([]))
     );
@@ -76,7 +70,6 @@ export class ConversationList implements OnInit {
       })
     );
 
-    // 2. ATENDIMENTOS ATIVOS COM FILTRO
     const rawActive$ = authState(this.auth).pipe(
       switchMap(user => user ? this.getActiveConversations(user.uid) : of([]))
     );
@@ -111,7 +104,6 @@ export class ConversationList implements OnInit {
     this.conversationSelected.emit(id);
   }
 
-  // --- FUNÇÃO MODIFICADA: AGORA EXPORTA AS NOVAS COLUNAS DO POPUP ---
   private formatDataForExport(snapshot: any) {
     const data = snapshot.docs
       .map((doc: any) => doc.data() as Conversation)
@@ -124,16 +116,12 @@ export class ConversationList implements OnInit {
 
     return data.map((convo: Conversation) => {
       
-      // 1. CÁLCULO DO TEMPO
       let tempoAtendimento = 'Não calculado';
 
-      // Se o atendimento não foi fechado ainda
       if (convo.status !== 'closed') {
         tempoAtendimento = 'Em Andamento';
       } 
-      // Se foi fechado, tentamos calcular
       else if (convo.closedAt) {
-          
           if (convo.startedAt) {
             const start: Date = convo.startedAt.toDate ? convo.startedAt.toDate() : new Date(convo.startedAt);
             const end: Date = convo.closedAt.toDate ? convo.closedAt.toDate() : new Date(convo.closedAt);
@@ -145,19 +133,18 @@ export class ConversationList implements OnInit {
           }
       }
       
-      // 2. GPRS
       let comunicacaoDisplay = convo.intakeData?.modoComunicacao || '';
       if (comunicacaoDisplay === 'GPRS' && convo.intakeData?.tipoGprs) {
         comunicacaoDisplay = `GPRS - ${convo.intakeData.tipoGprs}`;
       }
 
-      // 3. RECUPERANDO OS DADOS DO POPUP (Feedback de Encerramento)
-      // Usamos (convo as any) caso a interface Conversation ainda não tenha o campo tipado
       const feedback = (convo as any).closingFeedback || {}; 
-      
+      const emailAtendente = (convo as any).attendedByEmail || 'Não registrado';
+
       return {
         'Nome': convo.intakeData?.nome?.toUpperCase() || '',
         'Telefone': convo.intakeData?.telefone || 'N/D', 
+        'Email Atendente': emailAtendente,
         'Tempo Atendimento': tempoAtendimento,
         'Distribuidora': convo.intakeData?.distribuidora?.toUpperCase() || '',
         'Regional': convo.intakeData?.regional?.toUpperCase() || '',
@@ -170,8 +157,6 @@ export class ConversationList implements OnInit {
         'Porta': convo.intakeData?.porta || '', 
         'Data Atendimento': convo.queuedAt?.toDate().toLocaleDateString('pt-BR') || 'Data não registrada',
         'Hora Início': convo.startedAt?.toDate().toLocaleTimeString('pt-BR') || '-',
-
-        // --- NOVAS COLUNAS ADICIONADAS ---
         'Status Comunicação (Final)': feedback.statusComunicacao || '-',
         'Validação Assertiva': feedback.validacaoAssertiva || '-',
         'Obs. Problema': feedback.obsProblema || '-',
@@ -225,5 +210,31 @@ export class ConversationList implements OnInit {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  // --- MÉTODOS NOVOS PARA O AVATAR ---
+
+  getAvatarInitials(email: string | undefined): string {
+    if (!email) return '';
+    return email.substring(0, 2).toUpperCase();
+  }
+
+  getAvatarColor(email: string | undefined): string {
+    if (!email) return '#95a5a6'; // Cinza default
+
+    let hash = 0;
+    for (let i = 0; i < email.length; i++) {
+      hash = email.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    let color = '#';
+    for (let i = 0; i < 3; i++) {
+      // Ajuste matemático para garantir cores mais escuras/sólidas (contraste com branco)
+      const value = (hash >> (i * 8)) & 0xFF;
+      const safeValue = Math.max(40, Math.min(180, value)); 
+      color += ('00' + safeValue.toString(16)).substr(-2);
+    }
+
+    return color;
   }
 }

@@ -148,19 +148,37 @@ ul.convo-list {
   color: #888;
 }
 
-
-/* ================== MUDANÇA AQUI ================== */
-/* Estilos para o novo cabeçalho do item e rótulo de cor */
+/* CABEÇALHO DO ITEM DA LISTA */
 .item-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem; // Espaço entre o nome e o rótulo
-  margin-bottom: 5px; // Espaço entre o header e a 'lastMessage'
+  gap: 0.5rem; 
+  margin-bottom: 5px; 
+
+  /* NOVO CSS PARA O AVATAR */
+  .agent-avatar {
+    width: 28px;        
+    height: 28px;       
+    border-radius: 50%; /* Círculo perfeito */
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    color: #ffffff;     /* Fonte Branca */
+    font-size: 0.7rem;  /* Fonte pequena */
+    font-weight: 800;   /* Negrito */
+    
+    flex-shrink: 0;     /* Não amassar */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    text-transform: uppercase;
+    border: 1px solid rgba(255,255,255,0.2); /* Borda sutil */
+  }
 
   h4 {
-    margin: 0; // Remove a margem padrão do h4
+    margin: 0; 
     color: #f5f5f5; 
-    white-space: nowrap; // Impede que o nome quebre
+    white-space: nowrap; 
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -169,27 +187,28 @@ ul.convo-list {
 .service-tag {
   font-size: 0.75rem;
   font-weight: 700;
-  padding: 2px 0; // Padding vertical leve
-  white-space: nowrap; // Impede que o rótulo quebre
-  flex-shrink: 0; // Impede que o rótulo seja "esmagado"
+  padding: 2px 0; 
+  white-space: nowrap; 
+  flex-shrink: 0; 
   
-  // Nossas cores
-  &.tag-red    { color: #ff8a80; } // Vermelho (Comissionamento)
-  &.tag-blue   { color: #82b1ff; } // Azul (Verificar)
-  &.tag-green  { color: #b9f6ca; } // Verde (Cadastro)
-  &.tag-orange { color: #ffd180; } // Laranja (Troca GPRS)
-  &.tag-purple { color: #e0b0ff; } // Roxo (Troca Tec)
-  &.tag-yellow { color: #ffff8d; } // Amarelo (Voltar)
-  &.tag-grey   { color: #bdbdbd; } // Cinza (Default)
+  &.tag-red    { color: #ff8a80; } 
+  &.tag-blue   { color: #82b1ff; } 
+  &.tag-green  { color: #b9f6ca; } 
+  &.tag-orange { color: #ffd180; } 
+  &.tag-purple { color: #e0b0ff; } 
+  &.tag-yellow { color: #ffff8d; } 
+  &.tag-grey   { color: #bdbdbd; } 
 }
 
-// Ajusta as cores quando o item está selecionado
 .convo-item.selected {
   .item-header h4 {
     color: #fff;
   }
   .service-tag {
-    color: #fff; // Deixa o rótulo branco sólido
+    color: #fff; 
+  }
+  /* Borda branca no avatar quando selecionado para destaque */
+  .agent-avatar {
+    border: 1px solid white;
   }
 }
-/* ================== FIM DA MUDANÇA ================== */

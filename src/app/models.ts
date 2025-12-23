@@ -28,6 +28,7 @@ export interface Conversation {
   userName: string;
   startedAt?: any;
   status: 'loading' | 'pending_intake' | 'queued' | 'active' | 'closed';
+  attendedByEmail?: string;
   
   createdAt?: any; // Essencial: data de criação para o Excel
   queuedAt?: any;  // Essencial: data de entrada na fila
