@@ -43,8 +43,13 @@ export class ConversationList implements OnInit {
   queuedConversations$!: Observable<Conversation[]>;
   activeConversations$!: Observable<Conversation[]>;
 
+  // Filtro de Serviço
   filterSubject = new BehaviorSubject<string>(''); 
   selectedFilter: string = '';
+
+  // Filtro de Distribuidora (NOVO)
+  distributorFilterSubject = new BehaviorSubject<string>('');
+  selectedDistributor: string = '';
   
   filterOptions = [
     'COMISSIONAMENTO',
@@ -55,7 +60,12 @@ export class ConversationList implements OnInit {
     'VOLTAR COMUNICAÇÃO'
   ];
 
-  // AQUI: Mapa de Prioridades Visuais para o Filtro
+  // Opções de Distribuidora (NOVO)
+  distributorOptions = [
+    'AL', 'AP', 'GO', 'MA', 'PA', 'PI', 'RS'
+  ];
+
+  // Mapa de Prioridades Visuais para o Filtro
   servicePriorities: Record<string, number> = {
     'COMISSIONAMENTO': 5,
     'VERIFICAR COMUNICAÇÃO': 1,
@@ -74,11 +84,20 @@ export class ConversationList implements OnInit {
       switchMap(user => user ? this.getQueuedConversations() : of([]))
     );
 
-    // Combina com o filtro. A ordem é preservada.
-    this.queuedConversations$ = combineLatest([rawQueued$, this.filterSubject]).pipe(
-      map(([conversations, filter]) => {
-        if (!filter) return conversations;
-        return conversations.filter(c => c.intakeData?.opcaoAtendimento === filter);
+    // MUDANÇA: Agora combinamos a lista bruta com DOIS filtros (Serviço e Distribuidora)
+    this.queuedConversations$ = combineLatest([
+      rawQueued$, 
+      this.filterSubject, 
+      this.distributorFilterSubject
+    ]).pipe(
+      map(([conversations, serviceFilter, distFilter]) => {
+        // Lógica: Se o filtro existe, verifica igualdade. Se não, retorna true.
+        // O resultado final deve satisfazer AMBOS os filtros.
+        return conversations.filter(c => {
+          const matchService = serviceFilter ? c.intakeData?.opcaoAtendimento === serviceFilter : true;
+          const matchDist = distFilter ? c.intakeData?.distribuidora === distFilter : true;
+          return matchService && matchDist;
+        });
       })
     );
 
@@ -86,10 +105,18 @@ export class ConversationList implements OnInit {
       switchMap(user => user ? this.getActiveConversations(user.uid) : of([]))
     );
 
-    this.activeConversations$ = combineLatest([rawActive$, this.filterSubject]).pipe(
-      map(([conversations, filter]) => {
-        if (!filter) return conversations;
-        return conversations.filter(c => c.intakeData?.opcaoAtendimento === filter);
+    // MUDANÇA: Mesma lógica para a lista de ativos
+    this.activeConversations$ = combineLatest([
+      rawActive$, 
+      this.filterSubject,
+      this.distributorFilterSubject
+    ]).pipe(
+      map(([conversations, serviceFilter, distFilter]) => {
+        return conversations.filter(c => {
+          const matchService = serviceFilter ? c.intakeData?.opcaoAtendimento === serviceFilter : true;
+          const matchDist = distFilter ? c.intakeData?.distribuidora === distFilter : true;
+          return matchService && matchDist;
+        });
       })
     );
   }
@@ -99,7 +126,12 @@ export class ConversationList implements OnInit {
     this.filterSubject.next(newValue);
   }
 
-  // AQUI: Função para abreviar os nomes dos serviços na lista
+  // Novo Método para mudança de distribuidora
+  onDistributorChange(newValue: string) {
+    this.selectedDistributor = newValue;
+    this.distributorFilterSubject.next(newValue);
+  }
+
   getAbbreviatedService(service: string | undefined): string {
     if (!service) return '';
 
@@ -112,7 +144,6 @@ export class ConversationList implements OnInit {
         return 'TROCA TEC.';
       case 'VOLTAR COMUNICAÇÃO':
         return 'VOLTAR COM.';
-      // Estes casos abaixo retornam o original, mas adicionei aqui para clareza
       case 'TROCA DE PORTA GPRS': 
       case 'COMISSIONAMENTO':
       default:

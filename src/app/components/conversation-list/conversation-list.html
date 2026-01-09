@@ -24,20 +24,42 @@
 </div>
 
 <div class="filter-container" style="padding: 10px 15px; border-bottom: 1px solid #ddd; background: #0e2746;">
-  <label style="font-size: 0.85rem; font-weight: bold; color: #FFF; display: block; margin-bottom: 5px;">
-    Filtrar por Tipo de Atendimento:
-  </label>
-  <select 
-    [ngModel]="selectedFilter" 
-    (ngModelChange)="onFilterChange($event)"
-    style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.9rem;">
-    <option value="">TODOS OS ATENDIMENTOS</option>
-    @for (option of filterOptions; track option) {
-      <option [value]="option">
-        {{ option }} ({{ servicePriorities[option] || 0 }})
-      </option>
-    }
-  </select>
+  
+  <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    
+    <div style="flex: 2; min-width: 200px;">
+      <label style="font-size: 0.85rem; font-weight: bold; color: #FFF; display: block; margin-bottom: 5px;">
+        Filtrar por Tipo:
+      </label>
+      <select 
+        [ngModel]="selectedFilter" 
+        (ngModelChange)="onFilterChange($event)"
+        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.9rem;">
+        <option value="">TODOS OS SERVIÇOS</option>
+        @for (option of filterOptions; track option) {
+          <option [value]="option">
+            {{ option }} ({{ servicePriorities[option] || 0 }})
+          </option>
+        }
+      </select>
+    </div>
+
+    <div style="flex: 1; min-width: 120px;">
+      <label style="font-size: 0.85rem; font-weight: bold; color: #FFF; display: block; margin-bottom: 5px;">
+        Distribuidora:
+      </label>
+      <select 
+        [ngModel]="selectedDistributor" 
+        (ngModelChange)="onDistributorChange($event)"
+        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.9rem;">
+        <option value="">TODAS</option>
+        @for (dist of distributorOptions; track dist) {
+          <option [value]="dist">{{ dist }}</option>
+        }
+      </select>
+    </div>
+
+  </div>
 </div>
 
 <div class="lists-wrapper">
@@ -46,7 +68,7 @@
   
   @if (queuedConversations$ | async; as conversations) {
     @if (conversations.length === 0) {
-      <div class="empty-list-label">Nenhum item na fila.</div>
+      <div class="empty-list-label">Nenhum item na fila com os filtros atuais.</div>
     }
     <ul class="convo-list">
       @for (convo of conversations; track convo.id; let i = $index) {
@@ -112,6 +134,9 @@
           </div>
           
           <p>{{ convo.lastMessage?.text }}</p>
+          <p style="font-size: 0.75rem; color: #666; margin-top: 2px;">
+             DIST.: {{convo.intakeData?.distribuidora}}
+          </p>
         </li>
       }
     </ul>
