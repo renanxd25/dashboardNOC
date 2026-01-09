@@ -71,15 +71,24 @@
             <li><strong>Distribuidora:</strong> {{ currentConversation?.intakeData?.distribuidora }}</li>
             <li><strong>Regional:</strong> {{ currentConversation?.intakeData?.regional }}</li>
             <li><strong>Atendimento:</strong> {{ currentConversation?.intakeData?.opcaoAtendimento }}</li>
-            <li><strong>SE/AL:</strong> {{ currentConversation?.intakeData?.siglaSEAL }}</li>
+            <li><strong>SE/AL:</strong> {{ currentConversation?.intakeData?.subestacao }} / {{ currentConversation?.intakeData?.alimentador }}</li>
             <li><strong>Componente:</strong> {{ currentConversation?.intakeData?.componente }}</li>
-            <li><strong>Modelo:</strong> {{ currentConversation?.intakeData?.modeloControle }}</li>
+            <li><strong>Modelo:</strong> {{ currentConversation?.intakeData?.modelo || currentConversation?.intakeData?.modeloControle }}</li>
+            @if(currentConversation?.intakeData?.rele) {
+               <li><strong>Relé:</strong> {{ currentConversation?.intakeData?.rele }}</li>
+            }
             
             <li>
               <strong>Comunicação:</strong> 
               {{ currentConversation?.intakeData?.modoComunicacao }}
               <ng-container *ngIf="currentConversation?.intakeData?.modoComunicacao === 'GPRS' && currentConversation?.intakeData?.tipoGprs">
                 - {{ currentConversation?.intakeData?.tipoGprs }}
+              </ng-container>
+              <ng-container *ngIf="currentConversation?.intakeData?.modoComunicacao === 'SATELITAL' && currentConversation?.intakeData?.tipoSatelital">
+                - {{ currentConversation?.intakeData?.tipoSatelital }}
+              </ng-container>
+              <ng-container *ngIf="currentConversation?.intakeData?.modoComunicacao === 'FIBRA' && currentConversation?.intakeData?.tipoFibra">
+                - {{ currentConversation?.intakeData?.tipoFibra }}
               </ng-container>
             </li>
 
@@ -91,30 +100,185 @@
         @else if (editableData) {
           <form class="intake-edit-form" (ngSubmit)="saveIntakeData()">
             <div class="form-grid">
-              <div class="form-group"><label>Nome</label><input type="text" [(ngModel)]="editableData.nome" name="edit-nome" required></div>
               
-              <div class="form-group"><label>Telefone</label><input type="text" [(ngModel)]="editableData.telefone" name="edit-telefone"></div>
+              <div class="form-group">
+                <label>1. NOME E SOBRENOME:</label>
+                <input type="text" [(ngModel)]="editableData.nome" name="edit-nome" required oninput="this.value = this.value.toUpperCase()">
+              </div>
 
-              <div class="form-group"><label>Distribuidora</label><select [(ngModel)]="editableData.distribuidora" name="edit-dist"><option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option><option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option><option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option><option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option><option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option><option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option><option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option><option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option><option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option></select></div>
-              <div class="form-group"><label>Regional</label><input type="text" [(ngModel)]="editableData.regional" name="edit-reg"></div>
-              <div class="form-group"><label>Atendimento</label><select [(ngModel)]="editableData.opcaoAtendimento" name="edit-op"><option value="COMISSIONAMENTO">COMISSIONAMENTO</option><option value="VERIFICAR COMUNICAÇÃO">VERIFICAR COMUNICAÇÃO</option><option value="CADASTRO DE PORTA HUGHES">CADASTRO DE PORTA HUGHES</option><option value="TROCA DE PORTA GPRS">TROCA DE PORTA GPRS</option><option value="TROCA DE TECNOLOGIA DE COMUNICAÇÃO">TROCA DE TECNOLOGIA DE COMUNICAÇÃO</option><option value="VOLTAR COMUNICAÇÃO">VOLTAR COMUNICAÇÃO</option></select></div>
-              <div class="form-group"><label>SE/AL</label><input type="text" [(ngModel)]="editableData.siglaSEAL" name="edit-seal"></div>
-              <div class="form-group"><label>Componente</label><input type="text" [(ngModel)]="editableData.componente" name="edit-comp"></div>
-              <div class="form-group"><label>Modelo</label><select [(ngModel)]="editableData.modeloControle" name="edit-mod"><option value="ADATECH">ADATECH</option><option value="SEL 651R">SEL 651R</option><option value="SEL 751">SEL 751</option><option value="ADVC3">ADVC3</option><option value="ADVC">ADVC</option><option value="NOJA">NOJA</option><option value="TAVRIDA">TAVRIDA</option><option value="RUA">RUA</option><option value="TAPELETRO">TAPELETRO</option><option value="CTR2">CTR2</option><option value="CTR3">CTR3</option><option value="FORM6">FORM6</option><option value="G&W">G&W</option><option value="NENHUM">NENHUM</option></select></div>
-              <div class="form-group"><label>Comunicação</label><select [(ngModel)]="editableData.modoComunicacao" name="edit-com"><option value="GPRS">GPRS</option><option value="BGAN">BGAN</option><option value="TELESPAZIO">TELESPAZIO</option><option value="RÁDIO">RÁDIO</option><option value="V2COM">V2COM</option><option value="FIBRA">FIBRA</option><option value="KOALA">KOALA</option><option value="SENSOR MT">SENSOR MT</option></select></div>
-              
-              <div class="form-group" *ngIf="editableData.modoComunicacao === 'GPRS'">
-                <label>Tipo GPRS</label>
-                <select [(ngModel)]="editableData.tipoGprs" name="edit-tipoGprs">
-                  <option value="CAS">CAS</option>
-                  <option value="V2COM">V2COM</option>
-                  <option value="HORUS">HORUS</option>
+              <div class="form-group">
+                <label>2. TELEFONE:</label>
+                <input type="text" [(ngModel)]="editableData.telefone" name="edit-telefone" required (input)="formatPhone($event)" placeholder="(99) 99999-9999">
+              </div>
+
+              <div class="form-group">
+                <label>3. DISTRIBUIDORA:</label>
+                <select [(ngModel)]="editableData.distribuidora" name="edit-distribuidora" required>
+                  <option value="" disabled>Selecione...</option>
+                  @for (estado of distribuidorasKeys; track estado) {
+                    <option [value]="estado">{{ estado }}</option>
+                  }
                 </select>
               </div>
 
-              <div class="form-group"><label>IP</label><input type="text" [(ngModel)]="editableData.ip" name="edit-ip"></div>
-              <div class="form-group"><label>Porta</label><input type="text" [(ngModel)]="editableData.porta" name="edit-porta"></div>
+              <div class="form-group">
+                <label>4. REGIONAL:</label>
+                @if (editableData.distribuidora && regionalsByState[editableData.distribuidora]) {
+                  <select [(ngModel)]="editableData.regional" name="edit-regional" required>
+                    <option value="" disabled>Selecione...</option>
+                    @for (regional of regionalsByState[editableData.distribuidora]; track regional) {
+                      <option [value]="regional">{{ regional }}</option>
+                    }
+                  </select>
+                } 
+                @else {
+                  <input type="text" [(ngModel)]="editableData.regional" name="edit-regional" required placeholder="Digite a regional..." oninput="this.value = this.value.toUpperCase()">
+                }
+              </div>
+
+              <div class="form-group">
+                <label>5. OPÇÃO DE ATENDIMENTO:</label>
+                <select [(ngModel)]="editableData.opcaoAtendimento" name="edit-opcaoAtendimento" (change)="onOpcaoChange()" required>
+                   <option value="CADASTRO DE PORTA HUGHES">CADASTRO DE PORTA HUGHES</option>
+                   <option value="COMISSIONAMENTO">COMISSIONAMENTO</option>
+                   <option value="TROCA DE PORTA">TROCA DE PORTA</option>
+                   <option value="TROCA DE TECNOLOGIA DE COMUNICAÇÃO">TROCA DE TECNOLOGIA DE COMUNICAÇÃO</option>
+                   <option value="VERIFICAR COMUNICAÇÃO">VERIFICAR COMUNICAÇÃO</option>
+                   <option value="VOLTAR COMUNICAÇÃO">VOLTAR COMUNICAÇÃO</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>6. SUBESTAÇÃO:</label>
+                <input type="text" [(ngModel)]="editableData.subestacao" name="edit-subestacao" maxlength="8" (input)="formatMax8AlphaNumeric($event)" required>
+              </div>
+
+              <div class="form-group">
+                <label>7. ALIMENTADOR:</label>
+                <input type="text" [(ngModel)]="editableData.alimentador" name="edit-alimentador" maxlength="8" (input)="formatMax8AlphaNumeric($event)" required>
+              </div>
+
+              <div class="form-group">
+                <label>8. COMPONENTE:</label>
+                <input type="text" [(ngModel)]="editableData.componente" name="edit-componente" (input)="formatAlphaNumeric($event)" required>
+              </div>
+
+              <div class="form-group">
+                <label>9. CLASSE:</label>
+                <select [(ngModel)]="editableData.classeComponente" name="edit-classe" (change)="onClasseChange()" required>
+                  <option value="" disabled>Selecione...</option>
+                  @for (classe of classesOptions; track classe) {
+                    <option [value]="classe">{{ classe }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>10. MODELO:</label>
+                <select [(ngModel)]="editableData.modelo" name="edit-modelo" (change)="onModeloChange()" required>
+                  <option value="" disabled>Selecione...</option>
+                  @for (modelo of currentModelsOptions; track modelo) {
+                    <option [value]="modelo">{{ modelo }}</option>
+                  }
+                </select>
+              </div>
+
+              @if (editableData.classeComponente === 'RELIGADOR' && editableData.modelo) {
+                <div class="form-group" style="background-color: #f0f7ff;">
+                  <label style="color: #007bff;">↳ RELÉ:</label>
+                  <select [(ngModel)]="editableData.rele" name="edit-rele" required>
+                    <option value="" disabled>Selecione...</option>
+                    @for (rele of currentRelaysOptions; track rele) {
+                      <option [value]="rele">{{ rele }}</option>
+                    }
+                  </select>
+                </div>
+              }
+
+              <div class="form-group">
+                <label>11. COMUNICAÇÃO:</label>
+                <select [(ngModel)]="editableData.modoComunicacao" name="edit-modo" required [disabled]="editableData.opcaoAtendimento === 'CADASTRO DE PORTA HUGHES'">
+                  <option value="GPRS">GPRS</option>
+                  <option value="SATELITAL">SATELITAL</option>
+                  <option value="FIBRA">FIBRA</option>
+                  <option value="RÁDIO">RÁDIO</option>
+                </select>
+              </div>
+
+              @if (editableData.modoComunicacao === 'GPRS') {
+                <div class="form-group" style="background-color: #f0f7ff;">
+                  <label style="color: #007bff;">↳ TIPO GPRS:</label>
+                  <select [(ngModel)]="editableData.tipoGprs" name="edit-tipoGprs" (change)="onGprsChange($any($event.target).value)" required>
+                    <option value="CAS">CAS</option>
+                    <option value="V2COM">V2COM</option>
+                    <option value="HORUS">HORUS</option>
+                  </select>
+                </div>
+              }
+
+              @if (editableData.modoComunicacao === 'SATELITAL') {
+                <div class="form-group" style="background-color: #f0f7ff;">
+                  <label style="color: #007bff;">↳ TIPO SATELITAL:</label>
+                  <select [(ngModel)]="editableData.tipoSatelital" name="edit-tipoSatelital" required>
+                    <option value="BGAN">BGAN</option>
+                    <option value="TELESPAZIO">TELESPAZIO</option>
+                  </select>
+                </div>
+              }
+
+              @if (editableData.modoComunicacao === 'FIBRA') {
+                <div class="form-group" style="background-color: #f0f7ff;">
+                  <label style="color: #007bff;">↳ TIPO FIBRA:</label>
+                  <select [(ngModel)]="editableData.tipoFibra" name="edit-tipoFibra" required>
+                    <option value="SERIAL">SERIAL</option>
+                    <option value="ETHERNET">ETHERNET</option>
+                  </select>
+                </div>
+              }
+
+              <div class="form-group">
+                <label>12. IP:</label>
+                @if (editableData.modoComunicacao === 'GPRS' && editableData.tipoGprs === 'CAS') {
+                   <input type="text" value="10.1.1.58" disabled style="background-color: #e9ecef;">
+                } 
+                @else if (editableData.modoComunicacao === 'GPRS' && editableData.tipoGprs === 'V2COM') {
+                   <input type="text" value="10.74.150.20" disabled style="background-color: #e9ecef;">
+                }
+                @else if (editableData.modoComunicacao === 'GPRS' && editableData.tipoGprs === 'HORUS') {
+                   <input type="text" value="10.82.149.2" disabled style="background-color: #e9ecef;">
+                }
+                @else {
+                   <input type="text" [(ngModel)]="editableData.ip" name="edit-ip" (input)="formatIP($event)" required>
+                }
+              </div>
+
+              <div class="form-group">
+                <label>13. PORTA:</label>
+                @if (editableData.modoComunicacao === 'SATELITAL' && editableData.tipoSatelital === 'TELESPAZIO') {
+                  <input type="text" value="20000" disabled style="background-color: #e9ecef;">
+                }
+                @else if (editableData.modoComunicacao === 'FIBRA' && editableData.tipoFibra === 'ETHERNET') {
+                  <input type="text" value="20000" disabled style="background-color: #e9ecef;">
+                }
+                @else if (editableData.tipoFibra === 'SERIAL' && editableData.distribuidora === 'MA') {
+                   <input type="text" value="50002" disabled style="background-color: #e9ecef;">
+                }
+                @else if (editableData.modoComunicacao === 'RÁDIO' && editableData.distribuidora === 'PA') {
+                   <input type="text" value="CONSULTAR SCADA" disabled style="background-color: #e9ecef;">
+                }
+                @else if (editableData.modoComunicacao === 'RÁDIO') {
+                   <input type="text" value="20000" disabled style="background-color: #e9ecef;">
+                }
+                @else if (editableData.opcaoAtendimento === 'CADASTRO DE PORTA HUGHES') {
+                   <input type="text" value="CONSULTAR VELP" disabled style="background-color: #e9ecef;">
+                }
+                @else {
+                  <input type="text" [(ngModel)]="editableData.porta" name="edit-porta" (input)="formatOnlyNumbers($event)" maxlength="5" required>
+                }
+              </div>
+
             </div>
+            
             <div class="form-actions">
               <button type="button" (click)="cancelEdit()" class="btn-cancel">Cancelar</button>
               <button type="submit" class="btn-save">Salvar</button>

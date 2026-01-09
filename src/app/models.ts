@@ -11,6 +11,13 @@ export interface IntakeData {
   tipoGprs?: string; // Adicionado: Campo novo para o tipo de GPRS (CAS, V2COM, HORUS)
   ip?: string;
   porta?: string;
+  modelo?:any;
+  classeComponente:any;
+  rele?:any;
+  alimentador?:any;
+  subestacao?:any;
+  tipoFibra?:any;
+  tipoSatelital?:any;
 }
 
 export interface Message {
@@ -29,10 +36,10 @@ export interface Conversation {
   startedAt?: any;
   status: 'loading' | 'pending_intake' | 'queued' | 'active' | 'closed';
   attendedByEmail?: string;
-  
   createdAt?: any; // Essencial: data de criação para o Excel
   queuedAt?: any;  // Essencial: data de entrada na fila
   closedAt?: any;
+  modelo?:any;
   
   lastMessage?: {
     text: string;

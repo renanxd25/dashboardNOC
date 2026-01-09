@@ -212,3 +212,26 @@ ul.convo-list {
     border: 1px solid white;
   }
 }
+
+::ng-deep .date-inputs input[type="date"]::-webkit-calendar-picker-indicator {
+    /* Exemplo: Inverter para branco */
+    filter: invert(1); 
+    cursor: pointer;
+}
+
+.queue-position {
+    background-color: #0e2746;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-right: 8px;
+    display: inline-block;
+    vertical-align: middle;
+}
+  
+.item-header h4 {
+    display: inline-block; /* Para alinhar com o badge */
+    margin: 0;
+}

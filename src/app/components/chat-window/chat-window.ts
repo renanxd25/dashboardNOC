@@ -63,11 +63,130 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     obsSolucao: ''
   };
 
+  // --- DADOS E LISTAS TRAZIDOS DO COMPONENTE 1 ---
+  modelsByClass: { [key: string]: string[] } = {
+    'CHAVE TELECOMANDA': ['BONOMI', 'IMS'],
+    'RELIGADOR': ['ARTECHE', 'COOPER', 'G&W', 'NOJA', 'SCHNEIDER', 'SIEMENS', 'TAVRIDA'],
+    'SENSOR': ['MT', 'KOALA']
+  };
+
+  relaysByRecloserModel: { [key: string]: string[] } = {
+    'ARTECHE': ['ADATECH', 'SEL 351R', 'SEL 7511', 'SEL 751A', 'SEL 751A STD'],
+    'COOPER': ['FORM 6', 'LBS', 'SEL 651R', 'SEL 7511'],
+    'G&W': ['SEL 7511'],
+    'NOJA': ['RC 10'],
+    'SCHNEIDER': ['ADVC', 'ADVC 2', 'ADVC 3', 'PTCC'],
+    'SIEMENS': ['7SC80'],
+    'TAVRIDA': ['RC 5', 'SEL 751A (CREATE)', 'SEL 751A (ECIL)']
+  };
+
+  regionalsByState: { [key: string]: string[] } = {
+    'AL': ['CENTRO', 'LESTE', 'OESTE'],
+    'AP': ['AP'],
+    'GO': ['ANÁPOLIS', 'FORMOSA', 'GOIÂNIA', 'IPORÁ', 'LUZILÂNDIA', 'METROPOLITANA', 'MONTE BELOS', 'MORRINHOS', 'RIO VERDE', 'URUAÇU'],
+    'MA': ['CENTRO', 'LESTE', 'NOROESTE', 'NORTE', 'SUL'],
+    'PA': ['CENTRO', 'LESTE', 'NORDESTE', 'NOROESTE', 'NORTE', 'OESTE', 'SUL'],
+    'PI': ['CENTRO-SUL', 'METROPOLITANA', 'NORTE', 'SUL'],
+    'RS': ['CAMPANHA', 'CARBONIFERA', 'CENTRO', 'LITORAL NORTE', 'LITORAL SUL', 'METROPOLITANA', 'NORDESTE', 'NORTE', 'PORTO ALEGRE', 'SUL']
+  };
+
   constructor() {
     this.authSub = authState(this.auth).pipe(take(1)).subscribe(user => {
       this.currentAdminId = user ? user.uid : null;
     });
   }
+
+  // --- GETTERS ---
+  get distribuidorasKeys() {
+    return Object.keys(this.regionalsByState).sort();
+  }
+
+  get classesOptions() {
+    return Object.keys(this.modelsByClass).sort();
+  }
+
+  get currentModelsOptions() {
+    if (!this.editableData?.classeComponente) return [];
+    return this.modelsByClass[this.editableData.classeComponente] || [];
+  }
+
+  get currentRelaysOptions() {
+    if (this.editableData?.classeComponente !== 'RELIGADOR' || !this.editableData?.modelo) return [];
+    return this.relaysByRecloserModel[this.editableData.modelo] || [];
+  }
+
+  // --- MÉTODOS DE FORMATAÇÃO E CONTROLE ---
+
+  formatPhone(event: any) {
+    let v = event.target.value.replace(/\D/g, "");
+    v = v.replace(/^(\d\d)(\d)/g, "($1) $2");
+    v = v.replace(/(\d{5})(\d)/, "$1-$2");
+    event.target.value = v.substring(0, 15);
+    if(this.editableData) this.editableData.telefone = event.target.value;
+  }
+
+  formatAlphaNumeric(event: any) {
+    let v = event.target.value.toUpperCase();
+    v = v.replace(/[^A-Z0-9- ]/g, ""); 
+    event.target.value = v;
+    if(this.editableData) this.editableData.componente = v;
+  }
+
+  formatMax8AlphaNumeric(event: any) {
+    let v = event.target.value.toUpperCase();
+    v = v.replace(/[^A-Z0-9- ]/g, "");
+    if (v.length > 8) v = v.substring(0, 8);
+    event.target.value = v;
+    // O ngModel atualiza o valor no objeto editableData automaticamente
+    const name = event.target.name;
+    if (this.editableData) {
+        if (name === 'edit-subestacao') this.editableData.subestacao = v;
+        if (name === 'edit-alimentador') this.editableData.alimentador = v;
+    }
+  }
+
+  formatIP(event: any) {
+    let v = event.target.value.replace(/[^0-9.]/g, "");
+    v = v.replace(/\.{2,}/g, ".");
+    event.target.value = v;
+    if(this.editableData) this.editableData.ip = v;
+  }
+
+  formatOnlyNumbers(event: any) {
+    let v = event.target.value.replace(/\D/g, "");
+    event.target.value = v;
+    if(this.editableData) this.editableData.porta = v;
+  }
+
+  onClasseChange() {
+    if(this.editableData) {
+      this.editableData.modelo = '';
+      this.editableData.rele = '';
+    }
+  }
+
+  onModeloChange() {
+    if(this.editableData) {
+      this.editableData.rele = '';
+    }
+  }
+
+  onOpcaoChange() {
+    if(!this.editableData) return;
+    if (this.editableData.opcaoAtendimento === 'CADASTRO DE PORTA HUGHES') {
+      this.editableData.modoComunicacao = 'SATELITAL'; 
+    }
+  }
+
+  onGprsChange(tipo: string) {
+    if(!this.editableData) return;
+    if (tipo === 'CAS') this.editableData.ip = '10.1.1.58';
+    else if (tipo === 'V2COM') this.editableData.ip = '10.74.150.20';
+    else if (tipo === 'HORUS') this.editableData.ip = '10.82.149.2';
+    else this.editableData.ip = ''; // Reset se não for um desses
+  }
+
+  // --- CICLO DE VIDA E OUTROS MÉTODOS ORIGINAIS ---
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['conversationId'] && this.conversationId) {
@@ -78,10 +197,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       this.convSub = onSnapshot(convDocRef, (docSnap) => {
         if (docSnap.exists()) {
           this.currentConversation = { id: docSnap.id, ...docSnap.data() } as Conversation;
-          
-          if (this.isEditing() && docSnap.data()['intakeData'] !== this.editableData) {
-            // Lógica de conflito opcional
-          }
         } else {
           this.currentConversation = null;
         }
@@ -155,10 +270,8 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
       const messagesCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
       
-      // <--- ALTERAÇÃO: CAPTURAR O EMAIL DO USUÁRIO LOGADO ---
       const currentUser = this.auth.currentUser;
       const adminEmail = currentUser?.email || 'email-nao-detectado';
-      // -----------------------------------------------------
 
       let autoMessageText = `Oi ${this.currentConversation?.userName || 'Cliente'} seu atendimento vai ser iniciado..`;
 
@@ -172,7 +285,8 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         autoMessageText += `Atendimento: ${data.opcaoAtendimento}\n`;
         autoMessageText += `SE/AL: ${data.siglaSEAL}\n`;
         autoMessageText += `Componente: ${data.componente}\n`;
-        autoMessageText += `Modelo Controle: ${data.modeloControle}\n`;
+        // Ajuste para pegar 'modelo' ou 'modeloControle'
+        autoMessageText += `Modelo Controle: ${data?.modelo || data.modeloControle}\n`;
         
         let comm = data.modoComunicacao;
         if (comm === 'GPRS' && data.tipoGprs) {
@@ -194,9 +308,7 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       await updateDoc(convDocRef, {
         status: 'active',
         attendedBy: this.currentAdminId,
-        // <--- ALTERAÇÃO: SALVAR O EMAIL NO DOCUMENTO ---
         attendedByEmail: adminEmail, 
-        // -----------------------------------------------
         startedAt: serverTimestamp(),
         unreadByDashboard: false,
         lastMessage: { 

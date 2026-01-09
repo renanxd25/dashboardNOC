@@ -55,14 +55,26 @@ export class ConversationList implements OnInit {
     'VOLTAR COMUNICAÇÃO'
   ];
 
+  // AQUI: Mapa de Prioridades Visuais para o Filtro
+  servicePriorities: Record<string, number> = {
+    'COMISSIONAMENTO': 5,
+    'VERIFICAR COMUNICAÇÃO': 1,
+    'CADASTRO DE PORTA HUGHES': 3,
+    'TROCA DE PORTA GPRS': 2,
+    'TROCA DE TECNOLOGIA DE COMUNICAÇÃO': 4,
+    'VOLTAR COMUNICAÇÃO': 6
+  };
+
   currentSelectedId: string | null = null;
   isLoading = signal(false);
 
   ngOnInit() {
+    // Busca a fila bruta (já ordenada por data de entrada)
     const rawQueued$ = authState(this.auth).pipe(
       switchMap(user => user ? this.getQueuedConversations() : of([]))
     );
 
+    // Combina com o filtro. A ordem é preservada.
     this.queuedConversations$ = combineLatest([rawQueued$, this.filterSubject]).pipe(
       map(([conversations, filter]) => {
         if (!filter) return conversations;
@@ -85,6 +97,27 @@ export class ConversationList implements OnInit {
   onFilterChange(newValue: string) {
     this.selectedFilter = newValue;
     this.filterSubject.next(newValue);
+  }
+
+  // AQUI: Função para abreviar os nomes dos serviços na lista
+  getAbbreviatedService(service: string | undefined): string {
+    if (!service) return '';
+
+    switch (service) {
+      case 'VERIFICAR COMUNICAÇÃO':
+        return 'VERIF. COM.';
+      case 'CADASTRO DE PORTA HUGHES':
+        return 'PORTA HUG';
+      case 'TROCA DE TECNOLOGIA DE COMUNICAÇÃO':
+        return 'TROCA TEC.';
+      case 'VOLTAR COMUNICAÇÃO':
+        return 'VOLTAR COM.';
+      // Estes casos abaixo retornam o original, mas adicionei aqui para clareza
+      case 'TROCA DE PORTA GPRS': 
+      case 'COMISSIONAMENTO':
+      default:
+        return service;
+    }
   }
 
   private getQueuedConversations(): Observable<Conversation[]> {
@@ -212,15 +245,13 @@ export class ConversationList implements OnInit {
     }
   }
 
-  // --- MÉTODOS NOVOS PARA O AVATAR ---
-
   getAvatarInitials(email: string | undefined): string {
     if (!email) return '';
     return email.substring(0, 2).toUpperCase();
   }
 
   getAvatarColor(email: string | undefined): string {
-    if (!email) return '#95a5a6'; // Cinza default
+    if (!email) return '#95a5a6';
 
     let hash = 0;
     for (let i = 0; i < email.length; i++) {
@@ -229,7 +260,6 @@ export class ConversationList implements OnInit {
 
     let color = '#';
     for (let i = 0; i < 3; i++) {
-      // Ajuste matemático para garantir cores mais escuras/sólidas (contraste com branco)
       const value = (hash >> (i * 8)) & 0xFF;
       const safeValue = Math.max(40, Math.min(180, value)); 
       color += ('00' + safeValue.toString(16)).substr(-2);

@@ -33,7 +33,9 @@
     style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.9rem;">
     <option value="">TODOS OS ATENDIMENTOS</option>
     @for (option of filterOptions; track option) {
-      <option [value]="option">{{ option }}</option>
+      <option [value]="option">
+        {{ option }} ({{ servicePriorities[option] || 0 }})
+      </option>
     }
   </select>
 </div>
@@ -41,33 +43,28 @@
 <div class="lists-wrapper">
   
   <h4 class="list-header">Fila de Atendimento</h4>
+  
   @if (queuedConversations$ | async; as conversations) {
     @if (conversations.length === 0) {
       <div class="empty-list-label">Nenhum item na fila.</div>
     }
     <ul class="convo-list">
-      @for (convo of conversations; track convo.id) {
+      @for (convo of conversations; track convo.id; let i = $index) {
         <li 
           class="convo-item"
           (click)="selectConversation(convo.id!, 'queued')" [class.selected]="convo.id === currentSelectedId">
-          
           <div class="item-header">
-            <h4>{{ convo.userName }}</h4>
             
-            @if(convo.intakeData) { 
-              @switch (convo.intakeData.opcaoAtendimento) {
-                @case ('COMISSIONAMENTO') { <span class="service-tag tag-red">(Comissionamento (5))</span> }
-                @case ('VERIFICAR COMUNICAÇÃO') { <span class="service-tag tag-blue">(Verificar Comunicação (1))</span> }
-                @case ('CADASTRO DE PORTA HUGHES') { <span class="service-tag tag-green">(Cadastro Hughes(3))</span> }
-                @case ('TROCA DE PORTA GPRS') { <span class="service-tag tag-orange">(Troca GPRS(2))</span> }
-                @case ('TROCA DE TECNOLOGIA DE COMUNICAÇÃO') { <span class="service-tag tag-purple">(Troca Cominiação(4))</span> }
-                @case ('VOLTAR COMUNICAÇÃO') { <span class="service-tag tag-yellow">(Voltar Comunicação(6))</span> }
-                @default { <span class="service-tag tag-grey">(Outro)</span> }
-              }
-            }
+            <span class="queue-position" title="Posição na fila">
+              {{ i + 1 }}º
+            </span>
+
+            <h4>{{ convo.userName }}</h4>
           </div>
           
-          <p>{{ convo.lastMessage?.text }}</p>
+          <p>
+            {{ getAbbreviatedService(convo.intakeData?.opcaoAtendimento) }} | DIST.: {{convo.intakeData?.distribuidora}}
+          </p>
         </li>
       }
     </ul>
@@ -76,7 +73,7 @@
   }
 
 
-  <h4 class="list-header">Meus Atendimentos</h4>
+  <h4 class="list-header">Atendimentos Inicializados</h4>
   @if (activeConversations$ | async; as conversations) {
     @if (conversations.length === 0) {
       <div class="empty-list-label">Nenhum atendimento ativo.</div>
