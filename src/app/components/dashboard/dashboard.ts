@@ -150,9 +150,11 @@ export class Dashboard implements OnInit {
         'Distribuidora': conv.intakeData?.distribuidora || '',
         'Regional': conv.intakeData?.regional || '',
         'Tipo de Atendimento': conv.intakeData?.opcaoAtendimento || '',
-        'Sigla SE/AL': conv.intakeData?.siglaSEAL || '',
+        'Subestação': conv.intakeData?.subestacao || '',
+        'Alimentador': conv.intakeData?.alimentador || '',
         'Componente': conv.intakeData?.componente || '',
-        'Modelo Controle': conv.intakeData?.modeloControle || '',
+        'Classe': conv.intakeData?.classeComponente || '',
+        'Modelo': conv.intakeData?.modelo || '',
         
         // Comunicação formatada
         'Comunicação': comunicacaoFormatada, // <--- USA A VARIÁVEL TRATADA

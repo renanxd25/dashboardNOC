@@ -47,7 +47,7 @@ export class ConversationList implements OnInit {
   filterSubject = new BehaviorSubject<string>(''); 
   selectedFilter: string = '';
 
-  // Filtro de Distribuidora (NOVO)
+  // Filtro de Distribuidora
   distributorFilterSubject = new BehaviorSubject<string>('');
   selectedDistributor: string = '';
   
@@ -60,12 +60,10 @@ export class ConversationList implements OnInit {
     'VOLTAR COMUNICAÇÃO'
   ];
 
-  // Opções de Distribuidora (NOVO)
   distributorOptions = [
     'AL', 'AP', 'GO', 'MA', 'PA', 'PI', 'RS'
   ];
 
-  // Mapa de Prioridades Visuais para o Filtro
   servicePriorities: Record<string, number> = {
     'COMISSIONAMENTO': 5,
     'VERIFICAR COMUNICAÇÃO': 1,
@@ -79,20 +77,17 @@ export class ConversationList implements OnInit {
   isLoading = signal(false);
 
   ngOnInit() {
-    // Busca a fila bruta (já ordenada por data de entrada)
+    // Busca a fila bruta
     const rawQueued$ = authState(this.auth).pipe(
       switchMap(user => user ? this.getQueuedConversations() : of([]))
     );
 
-    // MUDANÇA: Agora combinamos a lista bruta com DOIS filtros (Serviço e Distribuidora)
     this.queuedConversations$ = combineLatest([
       rawQueued$, 
       this.filterSubject, 
       this.distributorFilterSubject
     ]).pipe(
       map(([conversations, serviceFilter, distFilter]) => {
-        // Lógica: Se o filtro existe, verifica igualdade. Se não, retorna true.
-        // O resultado final deve satisfazer AMBOS os filtros.
         return conversations.filter(c => {
           const matchService = serviceFilter ? c.intakeData?.opcaoAtendimento === serviceFilter : true;
           const matchDist = distFilter ? c.intakeData?.distribuidora === distFilter : true;
@@ -101,11 +96,11 @@ export class ConversationList implements OnInit {
       })
     );
 
+    // ALTERAÇÃO: Não passamos mais o UID para filtrar, buscamos TODOS
     const rawActive$ = authState(this.auth).pipe(
-      switchMap(user => user ? this.getActiveConversations(user.uid) : of([]))
+      switchMap(user => user ? this.getActiveConversations() : of([]))
     );
 
-    // MUDANÇA: Mesma lógica para a lista de ativos
     this.activeConversations$ = combineLatest([
       rawActive$, 
       this.filterSubject,
@@ -126,28 +121,29 @@ export class ConversationList implements OnInit {
     this.filterSubject.next(newValue);
   }
 
-  // Novo Método para mudança de distribuidora
   onDistributorChange(newValue: string) {
     this.selectedDistributor = newValue;
     this.distributorFilterSubject.next(newValue);
+  }
+
+  getFilterLabel(option: string): string {
+    if (option === 'CADASTRO DE PORTA HUGHES') {
+      return 'CADASTRO DE PORTA';
+    }
+    return option;
   }
 
   getAbbreviatedService(service: string | undefined): string {
     if (!service) return '';
 
     switch (service) {
-      case 'VERIFICAR COMUNICAÇÃO':
-        return 'VERIF. COM.';
-      case 'CADASTRO DE PORTA HUGHES':
-        return 'PORTA HUG';
-      case 'TROCA DE TECNOLOGIA DE COMUNICAÇÃO':
-        return 'TROCA TEC.';
-      case 'VOLTAR COMUNICAÇÃO':
-        return 'VOLTAR COM.';
+      case 'VERIFICAR COMUNICAÇÃO': return 'VERIF. COM.';
+      case 'CADASTRO DE PORTA HUGHES': return 'PORTA HUG';
+      case 'TROCA DE TECNOLOGIA DE COMUNICAÇÃO': return 'TROCA TEC.';
+      case 'VOLTAR COMUNICAÇÃO': return 'VOLTAR COM.';
       case 'TROCA DE PORTA GPRS': 
       case 'COMISSIONAMENTO':
-      default:
-        return service;
+      default: return service;
     }
   }
 
@@ -157,9 +153,15 @@ export class ConversationList implements OnInit {
     return collectionData(q_queue, { idField: 'id' }) as Observable<Conversation[]>;
   }
 
-  private getActiveConversations(adminId: string): Observable<Conversation[]> {
+  // ALTERAÇÃO: Removido o filtro de ID do atendente. Agora retorna TODOS os ativos.
+  private getActiveConversations(): Observable<Conversation[]> {
     const convCollection = collection(this.firestore, 'conversations');
-    const q_active = query(convCollection, where('status', '==', 'active'), where('attendedBy', '==', adminId), orderBy('lastMessage.timestamp', 'desc'));
+    const q_active = query(
+      convCollection, 
+      where('status', '==', 'active'), 
+      // where('attendedBy', '==', adminId), // LINHA REMOVIDA
+      orderBy('lastMessage.timestamp', 'desc')
+    );
     return collectionData(q_active, { idField: 'id' }) as Observable<Conversation[]>;
   }
 
@@ -179,9 +181,7 @@ export class ConversationList implements OnInit {
     }
 
     return data.map((convo: Conversation) => {
-      
       let tempoAtendimento = 'Não calculado';
-
       if (convo.status !== 'closed') {
         tempoAtendimento = 'Em Andamento';
       } 
@@ -189,7 +189,6 @@ export class ConversationList implements OnInit {
           if (convo.startedAt) {
             const start: Date = convo.startedAt.toDate ? convo.startedAt.toDate() : new Date(convo.startedAt);
             const end: Date = convo.closedAt.toDate ? convo.closedAt.toDate() : new Date(convo.closedAt);
-            
             const durationMs = end.getTime() - start.getTime();
             tempoAtendimento = formatDuration(durationMs);
           } else {
@@ -204,7 +203,7 @@ export class ConversationList implements OnInit {
 
       const feedback = (convo as any).closingFeedback || {}; 
       const emailAtendente = (convo as any).attendedByEmail || 'Não registrado';
-
+      console.log('teste', convo.intakeData?.modelo?.toUpperCase())
       return {
         'Nome': convo.intakeData?.nome?.toUpperCase() || '',
         'Telefone': convo.intakeData?.telefone || 'N/D', 
@@ -213,9 +212,11 @@ export class ConversationList implements OnInit {
         'Distribuidora': convo.intakeData?.distribuidora?.toUpperCase() || '',
         'Regional': convo.intakeData?.regional?.toUpperCase() || '',
         'Atendimento': convo.intakeData?.opcaoAtendimento?.toUpperCase() || '',
-        'SE/AL': convo.intakeData?.siglaSEAL?.toUpperCase() || '',
+        'Subestação': convo.intakeData?.subestacao?.toUpperCase() || '',
+        'Alimentador': convo.intakeData?.alimentador?.toUpperCase() || '',
         'Componente': convo.intakeData?.componente?.toUpperCase() || '',
-        'Modelo Controle': convo.intakeData?.modeloControle?.toUpperCase() || '',
+        'Classe': convo.intakeData?.classeComponente?.toUpperCase() || '',
+        'Modelo': convo.intakeData?.modelo?.toUpperCase() || '',
         'Comunicação': comunicacaoDisplay.toUpperCase(), 
         'IP': convo.intakeData?.ip || '', 
         'Porta': convo.intakeData?.porta || '', 
@@ -283,19 +284,16 @@ export class ConversationList implements OnInit {
 
   getAvatarColor(email: string | undefined): string {
     if (!email) return '#95a5a6';
-
     let hash = 0;
     for (let i = 0; i < email.length; i++) {
       hash = email.charCodeAt(i) + ((hash << 5) - hash);
     }
-
     let color = '#';
     for (let i = 0; i < 3; i++) {
       const value = (hash >> (i * 8)) & 0xFF;
       const safeValue = Math.max(40, Math.min(180, value)); 
       color += ('00' + safeValue.toString(16)).substr(-2);
     }
-
     return color;
   }
 }

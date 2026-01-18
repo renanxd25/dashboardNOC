@@ -6,7 +6,7 @@ export interface IntakeData {
   opcaoAtendimento: string;
   siglaSEAL: string;
   componente: string;
-  modeloControle: string;
+  //modeloControle: string;
   modoComunicacao: string;
   tipoGprs?: string; // Adicionado: Campo novo para o tipo de GPRS (CAS, V2COM, HORUS)
   ip?: string;

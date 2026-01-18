@@ -1,6 +1,7 @@
 <div class="export-section">
-  <h4>Exportar todos os atendimentos</h4>
-  
+  <label style="font-size: 0.85rem; font-weight: bold; color: #FFF; display: block; margin-bottom: 5px;">
+          Exportar todos os atendimentos
+  </label>
   <button (click)="exportAll()" [disabled]="isLoading()">
     {{ isLoading() ? 'Exportando...' : 'Exportar Todos' }}
   </button>
@@ -36,11 +37,13 @@
         (ngModelChange)="onFilterChange($event)"
         style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.9rem;">
         <option value="">TODOS OS SERVIÇOS</option>
+        
         @for (option of filterOptions; track option) {
           <option [value]="option">
-            {{ option }} ({{ servicePriorities[option] || 0 }})
+            {{ getFilterLabel(option) }} ({{ servicePriorities[option] || 0 }})
           </option>
         }
+
       </select>
     </div>
 
@@ -104,8 +107,10 @@
       @for (convo of conversations; track convo.id) {
         <li 
           class="convo-item"
-          (click)="selectConversation(convo.id!, 'active')" [class.selected]="convo.id === currentSelectedId"
-          [ngClass]="{ 'closed': convo.status === 'closed' }">
+          (click)="selectConversation(convo.id!, 'active')" 
+          [class.selected]="convo.id === currentSelectedId"
+          [ngClass]="{ 'closed': convo.status === 'closed' }"
+          [style.border-left]="convo.attendedBy !== (auth.currentUser?.uid) ? '4px solid #f39c12' : '4px solid #2ecc71'">
           
           <div class="item-header">
             
@@ -119,23 +124,17 @@
             }
 
             <h4>{{ convo.userName }}</h4>
-            
-            @if(convo.intakeData) {
-              @switch (convo.intakeData.opcaoAtendimento) {
-                @case ('COMISSIONAMENTO') { <span class="service-tag tag-red">(Comissionamento)</span> }
-                @case ('VERIFICAR COMUNICAÇÃO') { <span class="service-tag tag-blue">(Verificar Com.)</span> }
-                @case ('CADASTRO DE PORTA HUGHES') { <span class="service-tag tag-green">(Cadastro Hughes)</span> }
-                @case ('TROCA DE PORTA GPRS') { <span class="service-tag tag-orange">(Troca GPRS)</span> }
-                @case ('TROCA DE TECNOLOGIA DE COMUNICAÇÃO') { <span class="service-tag tag-purple">(Troca Tec.)</span> }
-                @case ('VOLTAR COMUNICAÇÃO') { <span class="service-tag tag-yellow">(Voltar Com.)</span> }
-                @default { <span class="service-tag tag-grey">(Outro)</span> }
-              }
-            }
           </div>
+
+          @if (convo.attendedBy !== (auth.currentUser?.uid)) {
+            <small style="color: #e67e22; font-weight: bold; font-size: 0.7rem; display: block; margin-bottom: 2px;">
+              <i class="fa-regular fa-eye"></i> Visualizando
+            </small>
+          }
           
           <p>{{ convo.lastMessage?.text }}</p>
           <p style="font-size: 0.75rem; color: #666; margin-top: 2px;">
-             DIST.: {{convo.intakeData?.distribuidora}}
+            {{ getAbbreviatedService(convo.intakeData?.opcaoAtendimento) }}  | DIST.: {{convo.intakeData?.distribuidora}}
           </p>
         </li>
       }

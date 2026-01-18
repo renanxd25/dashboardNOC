@@ -35,15 +35,13 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   
   messages$: Observable<Message[]> = of([]);
   currentAdminId: string | null = null;
-  currentConversation: Conversation | null = null; 
+  currentConversation: Conversation | any = null; 
 
   private authSub: Subscription | null = null;
   private convSub: Unsubscribe | null = null; 
 
   isEditing = signal(false);
-  
   isIntakeExpanded = signal(true); 
-
   editableData: IntakeData | null = null;
 
   isUploading = signal(false);
@@ -63,7 +61,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     obsSolucao: ''
   };
 
-  // --- DADOS E LISTAS TRAZIDOS DO COMPONENTE 1 ---
   modelsByClass: { [key: string]: string[] } = {
     'CHAVE TELECOMANDA': ['BONOMI', 'IMS'],
     'RELIGADOR': ['ARTECHE', 'COOPER', 'G&W', 'NOJA', 'SCHNEIDER', 'SIEMENS', 'TAVRIDA'],
@@ -96,7 +93,16 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     });
   }
 
-  // --- GETTERS ---
+  // --- NOVO GETTER: VERIFICA SE O USUÁRIO É O DONO DO CHAT ---
+  get isOwner(): boolean {
+    if (!this.currentConversation || !this.currentAdminId) return false;
+    // Se o chat está ativo, só é dono quem está no campo 'attendedBy'
+    if (this.currentConversation.status === 'active') {
+        return this.currentConversation.attendedBy === this.currentAdminId;
+    }
+    return false;
+  }
+
   get distribuidorasKeys() {
     return Object.keys(this.regionalsByState).sort();
   }
@@ -114,8 +120,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     if (this.editableData?.classeComponente !== 'RELIGADOR' || !this.editableData?.modelo) return [];
     return this.relaysByRecloserModel[this.editableData.modelo] || [];
   }
-
-  // --- MÉTODOS DE FORMATAÇÃO E CONTROLE ---
 
   formatPhone(event: any) {
     let v = event.target.value.replace(/\D/g, "");
@@ -137,7 +141,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     v = v.replace(/[^A-Z0-9- ]/g, "");
     if (v.length > 8) v = v.substring(0, 8);
     event.target.value = v;
-    // O ngModel atualiza o valor no objeto editableData automaticamente
     const name = event.target.name;
     if (this.editableData) {
         if (name === 'edit-subestacao') this.editableData.subestacao = v;
@@ -183,10 +186,8 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     if (tipo === 'CAS') this.editableData.ip = '10.1.1.58';
     else if (tipo === 'V2COM') this.editableData.ip = '10.74.150.20';
     else if (tipo === 'HORUS') this.editableData.ip = '10.82.149.2';
-    else this.editableData.ip = ''; // Reset se não for um desses
+    else this.editableData.ip = '';
   }
-
-  // --- CICLO DE VIDA E OUTROS MÉTODOS ORIGINAIS ---
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['conversationId'] && this.conversationId) {
@@ -206,9 +207,7 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       this.isEditing.set(false); 
       this.isRecording.set(false);
       this.isUploading.set(false);
-      
       this.isIntakeExpanded.set(true); 
-      
       this.showClosingModal.set(false);
 
     } else if (!this.conversationId) {
@@ -245,6 +244,12 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
 
   async startAttendance() {
     if (!this.conversationId || !this.currentAdminId) return;
+
+    // Proteção extra: Se já tem dono e não sou eu
+    if (this.currentConversation?.attendedBy && this.currentConversation.attendedBy !== this.currentAdminId) {
+        alert("Este atendimento já está sendo realizado por outro atendente.");
+        return;
+    }
 
     try {
       const activeChatsQuery = query(
@@ -283,18 +288,20 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         autoMessageText += `Distribuidora: ${data.distribuidora}\n`;
         autoMessageText += `Regional: ${data.regional}\n`;
         autoMessageText += `Atendimento: ${data.opcaoAtendimento}\n`;
-        autoMessageText += `SE/AL: ${data.siglaSEAL}\n`;
+        autoMessageText += `SE/AL: ${data?.siglaSEAL || ''}\n`; 
         autoMessageText += `Componente: ${data.componente}\n`;
-        // Ajuste para pegar 'modelo' ou 'modeloControle'
-        autoMessageText += `Modelo Controle: ${data?.modelo || data.modeloControle}\n`;
-        
         let comm = data.modoComunicacao;
         if (comm === 'GPRS' && data.tipoGprs) {
           comm += ` - ${data.tipoGprs}`;
         }
         autoMessageText += `Comunicação: ${comm}\n`;
         autoMessageText += `IP: ${data.ip}\n`;
-        autoMessageText += `Porta: ${data.porta}`;
+        autoMessageText += `Porta: ${data.porta}\n`;
+        autoMessageText += `Classe: ${data.classeComponente}\n`;
+        autoMessageText += `Modelo: ${data?.modelo || data.modeloControle}\n`;
+        if(data?.rele != null || data?.rele != undefined || data?.rele != ''){
+          autoMessageText += `Rele: ${data?.rele}\n`;
+        }
       }
 
       const newMessage: Message = {
@@ -311,6 +318,7 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         attendedByEmail: adminEmail, 
         startedAt: serverTimestamp(),
         unreadByDashboard: false,
+        warningSent: false, 
         lastMessage: { 
           text: "Atendimento iniciado (Dados enviados)", 
           timestamp: serverTimestamp() 
@@ -365,10 +373,12 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       await addDoc(messagesCollection, newMessage);
 
       const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
+      
       await updateDoc(convDocRef, {
         lastMessage: { text: messageText, timestamp: serverTimestamp() },
         status: 'active',
-        unreadByDashboard: false
+        unreadByDashboard: false,
+        warningSent: true 
       });
 
       this.shouldScrollToBottom = true;
@@ -500,6 +510,7 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       const msgsCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
       const snapshot = await getDocs(msgsCollection);
 
+      // NOTA: Recomendo remover essa parte de deleção se for manter histórico
       const deletePromises: Promise<void>[] = [];
       snapshot.forEach(docSnap => {
         const msg = docSnap.data() as Message;
@@ -550,6 +561,9 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
 
   toggleEdit(): void {
     if (!this.currentConversation?.intakeData) return;
+    // ALTERAÇÃO: Apenas permitir edição se for dono
+    if (!this.isOwner) return;
+
     if (this.isEditing()) {
       this.isEditing.set(false);
       this.editableData = null;
