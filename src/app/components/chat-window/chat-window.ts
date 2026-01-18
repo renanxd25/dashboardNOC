@@ -288,7 +288,8 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         autoMessageText += `Distribuidora: ${data.distribuidora}\n`;
         autoMessageText += `Regional: ${data.regional}\n`;
         autoMessageText += `Atendimento: ${data.opcaoAtendimento}\n`;
-        autoMessageText += `SE/AL: ${data?.siglaSEAL || ''}\n`; 
+        autoMessageText += `Alimentador: ${data?.alimentador || ''}\n`; 
+        autoMessageText += `Substação: ${data?.subestacao || ''}\n`; 
         autoMessageText += `Componente: ${data.componente}\n`;
         let comm = data.modoComunicacao;
         if (comm === 'GPRS' && data.tipoGprs) {
@@ -299,8 +300,12 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         autoMessageText += `Porta: ${data.porta}\n`;
         autoMessageText += `Classe: ${data.classeComponente}\n`;
         autoMessageText += `Modelo: ${data?.modelo || data.modeloControle}\n`;
-        if(data?.rele != null || data?.rele != undefined || data?.rele != ''){
-          autoMessageText += `Rele: ${data?.rele}\n`;
+        console.log(data.rele )
+      
+        if (data.rele !== 'null' && data.rele !== null) {
+            autoMessageText += `Relé: ${data.rele } \n`;
+        } else {
+            autoMessageText += ` \n`;
         }
       }
 
