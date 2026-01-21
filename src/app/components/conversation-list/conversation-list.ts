@@ -52,11 +52,11 @@ export class ConversationList implements OnInit {
   selectedDistributor: string = '';
   
   filterOptions = [
-    'COMISSIONAMENTO',
     'VERIFICAR COMUNICAÇÃO',
-    'CADASTRO DE PORTA HUGHES',
     'TROCA DE PORTA GPRS',
+    'CADASTRO DE PORTA HUGHES',
     'TROCA DE TECNOLOGIA DE COMUNICAÇÃO',
+    'COMISSIONAMENTO',
     'VOLTAR COMUNICAÇÃO'
   ];
 
@@ -96,7 +96,7 @@ export class ConversationList implements OnInit {
       })
     );
 
-    // ALTERAÇÃO: Não passamos mais o UID para filtrar, buscamos TODOS
+    // Busca conversas ativas (TODAS)
     const rawActive$ = authState(this.auth).pipe(
       switchMap(user => user ? this.getActiveConversations() : of([]))
     );
@@ -127,8 +127,8 @@ export class ConversationList implements OnInit {
   }
 
   getFilterLabel(option: string): string {
-    if (option === 'CADASTRO DE PORTA HUGHES') {
-      return 'CADASTRO DE PORTA';
+    if (option === 'TROCA DE PORTA GPRS') {
+      return 'TROCA DE PORTA';
     }
     return option;
   }
@@ -138,11 +138,11 @@ export class ConversationList implements OnInit {
 
     switch (service) {
       case 'VERIFICAR COMUNICAÇÃO': return 'VERIF. COM.';
-      case 'CADASTRO DE PORTA HUGHES': return 'PORTA HUG';
+      case 'CADASTRO DE PORTA HUGHES': return 'PORTA HUG.';
       case 'TROCA DE TECNOLOGIA DE COMUNICAÇÃO': return 'TROCA TEC.';
       case 'VOLTAR COMUNICAÇÃO': return 'VOLTAR COM.';
-      case 'TROCA DE PORTA GPRS': 
-      case 'COMISSIONAMENTO':
+      case 'TROCA DE PORTA GPRS': return 'TROCA PORTA';
+      case 'COMISSIONAMENTO': return 'COMISSION.';
       default: return service;
     }
   }
@@ -153,13 +153,11 @@ export class ConversationList implements OnInit {
     return collectionData(q_queue, { idField: 'id' }) as Observable<Conversation[]>;
   }
 
-  // ALTERAÇÃO: Removido o filtro de ID do atendente. Agora retorna TODOS os ativos.
   private getActiveConversations(): Observable<Conversation[]> {
     const convCollection = collection(this.firestore, 'conversations');
     const q_active = query(
       convCollection, 
       where('status', '==', 'active'), 
-      // where('attendedBy', '==', adminId), // LINHA REMOVIDA
       orderBy('lastMessage.timestamp', 'desc')
     );
     return collectionData(q_active, { idField: 'id' }) as Observable<Conversation[]>;
@@ -182,6 +180,8 @@ export class ConversationList implements OnInit {
 
     return data.map((convo: Conversation) => {
       let tempoAtendimento = 'Não calculado';
+      let horaFinalizacaoFormatada = '-'; // Variável para armazenar a hora formatada
+
       if (convo.status !== 'closed') {
         tempoAtendimento = 'Em Andamento';
       } 
@@ -189,10 +189,17 @@ export class ConversationList implements OnInit {
           if (convo.startedAt) {
             const start: Date = convo.startedAt.toDate ? convo.startedAt.toDate() : new Date(convo.startedAt);
             const end: Date = convo.closedAt.toDate ? convo.closedAt.toDate() : new Date(convo.closedAt);
+            
             const durationMs = end.getTime() - start.getTime();
             tempoAtendimento = formatDuration(durationMs);
+            
+            // Formatando a hora de finalização
+            horaFinalizacaoFormatada = end.toLocaleTimeString('pt-BR');
           } else {
             tempoAtendimento = 'N/A (Sem registro de início)';
+            // Tenta formatar a hora final mesmo sem hora de início, se existir closedAt
+            const end: Date = convo.closedAt.toDate ? convo.closedAt.toDate() : new Date(convo.closedAt);
+            horaFinalizacaoFormatada = end.toLocaleTimeString('pt-BR');
           }
       }
       
@@ -203,12 +210,11 @@ export class ConversationList implements OnInit {
 
       const feedback = (convo as any).closingFeedback || {}; 
       const emailAtendente = (convo as any).attendedByEmail || 'Não registrado';
-      console.log('teste', convo.intakeData?.modelo?.toUpperCase())
+      
       return {
         'Nome': convo.intakeData?.nome?.toUpperCase() || '',
         'Telefone': convo.intakeData?.telefone || 'N/D', 
         'Email Atendente': emailAtendente,
-        'Tempo Atendimento': tempoAtendimento,
         'Distribuidora': convo.intakeData?.distribuidora?.toUpperCase() || '',
         'Regional': convo.intakeData?.regional?.toUpperCase() || '',
         'Atendimento': convo.intakeData?.opcaoAtendimento?.toUpperCase() || '',
@@ -222,6 +228,8 @@ export class ConversationList implements OnInit {
         'Porta': convo.intakeData?.porta || '', 
         'Data Atendimento': convo.queuedAt?.toDate().toLocaleDateString('pt-BR') || 'Data não registrada',
         'Hora Início': convo.startedAt?.toDate().toLocaleTimeString('pt-BR') || '-',
+        'Hora Finalização': horaFinalizacaoFormatada, // <<< NOVA COLUNA AQUI
+        'Tempo Atendimento': tempoAtendimento,
         'Status Comunicação (Final)': feedback.statusComunicacao || '-',
         'Validação Assertiva': feedback.validacaoAssertiva || '-',
         'Obs. Problema': feedback.obsProblema || '-',

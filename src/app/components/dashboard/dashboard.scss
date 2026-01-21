@@ -29,3 +29,16 @@
   flex-direction: column;
   min-width: 0; 
 }
+
+.text-info {
+  h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+  .status-dot.online { background-color: #28a745; }
+  .status-text { font-size: 0.8rem; color: #666; }
+}
+
+.logout-btn {
+    background: none; border: 1px solid #dc3545; color: #dc3545; padding: 5px 12px;
+    border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
+    &:hover { background: #dc3545; color: white; }
+}

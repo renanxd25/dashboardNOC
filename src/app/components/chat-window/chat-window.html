@@ -97,16 +97,20 @@
             <li><strong>Regional:</strong> {{ currentConversation?.intakeData?.regional }}</li>
             <li><strong>Porta:</strong> {{ currentConversation?.intakeData?.porta }}</li>
            
-            @if(currentConversation?.intakeData?.rele) {
-               <li><strong>Relé:</strong> {{ currentConversation?.intakeData?.rele }}</li>
-            }
+
             <li><strong>Atendimento:</strong> {{ currentConversation?.intakeData?.opcaoAtendimento }}</li>
             <li><strong>Classe:</strong> {{ currentConversation?.intakeData?.classeComponente }} </li>
     
             <li><strong>SE/AL:</strong> {{ currentConversation?.intakeData?.subestacao }} / {{ currentConversation?.intakeData?.alimentador }}</li>
-            <li><strong>Modelo:</strong> {{ currentConversation?.intakeData?.modelo || currentConversation?.intakeData?.modeloControle }}</li>
+
+            <li><strong>Modelo:</strong> {{ currentConversation?.intakeData?.modelo || currentConversation?.intakeData?.modeloControle }} - @if(currentConversation?.intakeData?.rele) {
+           {{ currentConversation?.intakeData?.rele }}
+           }
             
-           
+            @if(currentConversation?.intakeData?.rele) {
+            <li class="relemagin"> <span ><strong>Relé:</strong> {{ currentConversation?.intakeData?.rele }}</span></li>
+            }
+            </li>
           </ul>
         }
 

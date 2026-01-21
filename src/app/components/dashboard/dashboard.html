@@ -26,8 +26,11 @@
   
   <div class="sidebar">
     <div class="sidebar-header">
-      <h3>Conversas</h3>
-      <button (click)="logout()">Sair</button>
+      <div class="text-info">
+        <h3>NOC Atendimentos</h3>
+        <span class="status-dot online"></span><span class="status-text">Administrador</span>
+      </div>
+      <button class="logout-btn" (click)="logout()">Sair</button>
     </div>
     <app-conversation-list 
       (conversationSelected)="onConversationSelected($event)">

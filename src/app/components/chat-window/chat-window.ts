@@ -287,9 +287,13 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         autoMessageText += `Telefone: ${data.telefone || 'N/D'}\n`;
         autoMessageText += `Distribuidora: ${data.distribuidora}\n`;
         autoMessageText += `Regional: ${data.regional}\n`;
-        autoMessageText += `Atendimento: ${data.opcaoAtendimento}\n`;
-        autoMessageText += `Alimentador: ${data?.alimentador || ''}\n`; 
+        autoMessageText += `Classe: ${data.classeComponente}\n`;
+        autoMessageText += `Modelo: ${data?.modelo || data.modeloControle}\n`;
+        if (data.rele !== 'null' && data.rele !== null) {
+            autoMessageText += `Relé: ${data.rele } \n`;
+        }
         autoMessageText += `Substação: ${data?.subestacao || ''}\n`; 
+        autoMessageText += `Alimentador: ${data?.alimentador || ''}\n`; 
         autoMessageText += `Componente: ${data.componente}\n`;
         let comm = data.modoComunicacao;
         if (comm === 'GPRS' && data.tipoGprs) {
@@ -298,15 +302,10 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         autoMessageText += `Comunicação: ${comm}\n`;
         autoMessageText += `IP: ${data.ip}\n`;
         autoMessageText += `Porta: ${data.porta}\n`;
-        autoMessageText += `Classe: ${data.classeComponente}\n`;
-        autoMessageText += `Modelo: ${data?.modelo || data.modeloControle}\n`;
-        console.log(data.rele )
-      
-        if (data.rele !== 'null' && data.rele !== null) {
-            autoMessageText += `Relé: ${data.rele } \n`;
-        } else {
-            autoMessageText += ` \n`;
-        }
+        autoMessageText += `Atendimento: ${data.opcaoAtendimento}\n`;
+
+
+
       }
 
       const newMessage: Message = {
@@ -365,7 +364,7 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   async sendAutoClosingMessage() {
     if (!this.conversationId || !this.currentAdminId) return;
 
-    const messageText = "O atendimento será encerrado, por favor, certifique que todas as midias necessarias para você tenham sido baixadas em seu dispositivo";
+    const messageText = "O atendimento será encerrado, por favor, certifique que todas as mídias necessárias para você tenham sido baixadas em seu dispositivo.";
 
     const newMessage: Message = {
       text: messageText,
