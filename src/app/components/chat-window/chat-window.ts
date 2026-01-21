@@ -292,8 +292,9 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         if (data.rele !== 'null' && data.rele !== null) {
             autoMessageText += `Relé: ${data.rele } \n`;
         }
-        autoMessageText += `Substação: ${data?.subestacao || ''}\n`; 
-        autoMessageText += `Alimentador: ${data?.alimentador || ''}\n`; 
+        autoMessageText += `SE/AL: ${data?.subestacao || ''} - ${data?.alimentador || ''} \n`; 
+        //autoMessageText += `Substação: ${data?.subestacao || ''}\n`; 
+        //autoMessageText += `Alimentador: ${data?.alimentador || ''}\n`; 
         autoMessageText += `Componente: ${data.componente}\n`;
         let comm = data.modoComunicacao;
         if (comm === 'GPRS' && data.tipoGprs) {

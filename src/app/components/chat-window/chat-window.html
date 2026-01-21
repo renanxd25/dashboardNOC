@@ -103,8 +103,10 @@
     
             <li><strong>SE/AL:</strong> {{ currentConversation?.intakeData?.subestacao }} / {{ currentConversation?.intakeData?.alimentador }}</li>
 
-            <li><strong>Modelo:</strong> {{ currentConversation?.intakeData?.modelo || currentConversation?.intakeData?.modeloControle }} - @if(currentConversation?.intakeData?.rele) {
-           {{ currentConversation?.intakeData?.rele }}
+            <li><strong>Modelo:</strong> 
+            {{ currentConversation?.intakeData?.modelo || currentConversation?.intakeData?.modeloControle }}  
+            @if(currentConversation?.intakeData?.rele) {
+            - {{ currentConversation?.intakeData?.rele }}
            }
             
             @if(currentConversation?.intakeData?.rele) {
