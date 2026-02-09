@@ -3,7 +3,7 @@
 
 :host {
   font-family: 'Manrope', sans-serif;
-  overflow: hidden; // Previne barras de scroll indesejadas
+  overflow: hidden;
 }
 
 .login-page-wrapper {
@@ -16,19 +16,19 @@
  * Coluna da Esquerda (Azul)
  * ================================= */
 .left-panel {
-  flex-basis: 45%; // Ocupa 45% da tela
-  background-color: #0e2746; // Sua cor personalizada
+  flex-basis: 45%;
+  background-color: #0e2746;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 3rem;
   position: relative;
-  overflow: hidden; // Para os círculos decorativos
+  overflow: hidden;
 
   .left-content {
     max-width: 400px;
-    z-index: 2; // Fica na frente dos círculos
+    z-index: 2;
 
     h1 {
       font-size: 2.5rem;
@@ -42,16 +42,14 @@
     }
   }
 
-  // Círculos decorativos (como na imagem)
   &::before, &::after {
     content: '';
     position: absolute;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.05); // Círculo sutil
+    border: 2px solid rgba(255, 255, 255, 0.05);
     z-index: 1;
   }
   
-  // Círculo 1
   &::before {
     width: 300px;
     height: 300px;
@@ -59,7 +57,6 @@
     left: -100px;
   }
   
-  // Círculo 2
   &::after {
     width: 200px;
     height: 200px;
@@ -73,7 +70,7 @@
  * ================================= */
 .right-panel {
   flex-basis: 55%;
-  background-color: #f7f9fc; // Um cinza/azul bem claro
+  background-color: #f7f9fc;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -102,25 +99,35 @@ form {
   width: 100%;
 }
 
+/* =================================
+ * Input Groups (ALTERADO)
+ * ================================= */
 .input-group {
   position: relative;
   margin-bottom: 1.5rem;
 
+  /* Ícone genérico (cor base) */
   .icon {
+    color: #aaa; /* Cor cinza, não colorida */
+  }
+
+  /* Estilo para o ícone da esquerda (antigo .icon) */
+  .icon-left {
     position: absolute;
     left: 18px;
     top: 50%;
     transform: translateY(-50%);
-    color: #aaa;
     z-index: 2;
+    pointer-events: none; /* Garante que o clique passe pelo ícone */
   }
 
   input {
     width: 100%;
-    padding: 1rem 1rem 1rem 3.25rem; // Padding esquerdo para o ícone
+    /* Padding padrão: 3.25rem na esquerda para o ícone inicial */
+    padding: 1rem 1rem 1rem 3.25rem; 
     box-sizing: border-box;
     border: 1px solid #ddd;
-    border-radius: 30px; // Cantos super arredondados
+    border-radius: 30px;
     font-size: 1rem;
     transition: all 0.2s ease;
 
@@ -129,14 +136,46 @@ form {
       border-color: #0e2746;
       box-shadow: 0 0 0 4px rgba(14, 39, 70, 0.1);
     }
+
+    /* NOVO: Padding extra na direita APENAS para o input de senha */
+    &.password-input {
+      padding-right: 3.5rem; /* Espaço para o ícone do olho não ficar em cima do texto */
+    }
+  }
+
+  /* NOVO: Botão que contém o ícone do olho */
+  .btn-toggle-password {
+    position: absolute;
+    right: 12px; /* Posicionado à direita */
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 8px; /* Aumenta a área de clique */
+    cursor: pointer;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+
+    /* Efeito hover sutil no botão do olho */
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+        .icon-eye, .icon-eye-off {
+            color: #777; /* Escurece ligeiramente o ícone no hover */
+        }
+    }
   }
 }
+/* ================================= */
 
 .login-btn {
   width: 100%;
   padding: 1rem;
   border: none;
-  background-color: #0e2746; // Sua cor personalizada
+  background-color: #0e2746;
   color: white;
   font-size: 1rem;
   font-weight: 600;
@@ -146,7 +185,7 @@ form {
   margin-top: 1rem;
 
   &:hover {
-    background-color: #0b203b; // Versão mais escura
+    background-color: #0b203b;
   }
 
   &:disabled {
@@ -155,31 +194,38 @@ form {
   }
 }
 
-.forgot-link {
-  display: block;
-  text-align: center;
-  margin-top: 1.5rem;
-  color: #777;
-  text-decoration: none;
-  font-size: 0.9rem;
-
-  &:hover {
-    text-decoration: underline;
-  }
+.error-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 15px;
+  margin-bottom: 15px;
+  width: 100%;
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
 }
 
-.error {
-  color: #d93025;
-  text-align: center;
-  margin-bottom: 1rem;
+.error-text {
+  color: #d32f2f;
+  background-color: #ffebee;
+  padding: 8px 12px;
+  border-radius: 4px;
   font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid #ef9a9a;
+  width: 100%;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
 /* =================================
- * Responsividade (Laptops)
+ * Responsividade
  * ================================= */
-
-// Para telas de laptop menores (13" ou 14")
 @media (max-width: 1200px) {
   .left-panel {
     flex-basis: 40%;
@@ -189,51 +235,16 @@ form {
   }
 }
 
-// Para laptops pequenos (12" ou visualização "dividida")
 @media (max-width: 992px) {
   .left-panel {
-    display: none; // Esconde o painel azul, foca no login
+    display: none;
   }
   .right-panel {
     flex-basis: 100%;
-    background-color: white; // Fundo branco simples
+    background-color: white;
   }
 }
 
 .logo{
   width: 350px;
-}
-
-/* ... seus estilos existentes ... */
-
-.error-container {
-  display: flex;
-  justify-content: center; /* Centraliza horizontalmente */
-  align-items: center;
-  margin-top: 15px;        /* Espaço acima (abaixo dos inputs) */
-  margin-bottom: 15px;     /* Espaço abaixo (acima do botão) */
-  width: 100%;
-  
-  /* Animação de tremor quando o erro aparece */
-  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-}
-
-.error-text {
-  color: #d32f2f;          /* Vermelho forte e legível */
-  background-color: #ffebee; /* Fundo vermelho bem clarinho (opcional) */
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-align: center;
-  border: 1px solid #ef9a9a; /* Borda vermelha suave */
-  width: 100%;             /* Opcional: faz o fundo ocupar a largura toda */
-}
-
-/* Animação para dar feedback visual de erro */
-@keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-  40%, 60% { transform: translate3d(4px, 0, 0); }
 }

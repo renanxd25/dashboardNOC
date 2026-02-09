@@ -8,18 +8,25 @@ import { Auth, signInWithEmailAndPassword } from '@angular/fire/auth';
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './login.html', // Verifique se o nome do arquivo está correto
-  styleUrl: './login.scss'     // Verifique se o nome do arquivo está correto
+  templateUrl: './login.html',
+  styleUrl: './login.scss'
 })
-export class Login { // Renomeei para LoginComponent (boa prática)
+export class Login {
   
-  // Injeção de dependências
   private auth = inject(Auth);
   private router = inject(Router);
-  private cdr = inject(ChangeDetectorRef); // CRUCIAL: Injeta o detector de mudanças
+  private cdr = inject(ChangeDetectorRef);
 
   loading = false;
   error: string | null = null;
+
+  // NOVO: Estado para controlar a visibilidade da senha
+  showPassword = false;
+
+  // NOVO: Método para alternar a visibilidade
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword;
+  }
 
   async onSubmit(form: NgForm) {
     if (form.invalid) {
@@ -33,13 +40,11 @@ export class Login { // Renomeei para LoginComponent (boa prática)
 
     try {
       await signInWithEmailAndPassword(this.auth, email, password);
-      // Se der certo, navega
       this.router.navigate(['/']); 
       
     } catch (err: any) {
       console.error('Erro Firebase:', err.code);
 
-      // Tratamento específico para feedback rápido
       switch(err.code) {
         case 'auth/invalid-credential':
         case 'auth/user-not-found':
@@ -56,12 +61,10 @@ export class Login { // Renomeei para LoginComponent (boa prática)
             this.error = "Erro ao fazer login. Tente novamente.";
       }
 
-      // CRUCIAL: Força a atualização da tela IMEDIATAMENTE após definir o erro
       this.cdr.detectChanges(); 
 
     } finally {
       this.loading = false;
-      // Garante que o estado de loading seja atualizado na tela
       this.cdr.detectChanges();
     }
   }
