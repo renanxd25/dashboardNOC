@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -8,41 +8,61 @@ import { Auth, signInWithEmailAndPassword } from '@angular/fire/auth';
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './login.html',
-  styleUrl: './login.scss'
+  templateUrl: './login.html', // Verifique se o nome do arquivo está correto
+  styleUrl: './login.scss'     // Verifique se o nome do arquivo está correto
 })
-export class Login {
-  auth: Auth = inject(Auth);
-  router: Router = inject(Router);
+export class Login { // Renomeei para LoginComponent (boa prática)
+  
+  // Injeção de dependências
+  private auth = inject(Auth);
+  private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef); // CRUCIAL: Injeta o detector de mudanças
 
-  // --- CORREÇÃO AQUI ---
-  // Adiciona as propriedades que faltavam
   loading = false;
   error: string | null = null;
-  // --- FIM DA CORREÇÃO ---
 
   async onSubmit(form: NgForm) {
     if (form.invalid) {
       return;
     }
 
-    // --- CORREÇÃO AQUI ---
-    // Atualiza as propriedades durante o login
     this.loading = true;
     this.error = null;
-    // --- FIM DA CORREÇÃO ---
 
     const { email, password } = form.value;
+
     try {
       await signInWithEmailAndPassword(this.auth, email, password);
-      this.router.navigate(['/']); // Navega para o dashboard
+      // Se der certo, navega
+      this.router.navigate(['/']); 
+      
     } catch (err: any) {
-      this.error = "Falha no login. Verifique seu e-mail ou senha.";
-      console.error(err);
+      console.error('Erro Firebase:', err.code);
+
+      // Tratamento específico para feedback rápido
+      switch(err.code) {
+        case 'auth/invalid-credential':
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+            this.error = "E-mail ou senha incorretos.";
+            break;
+        case 'auth/too-many-requests':
+            this.error = "Muitas tentativas. Aguarde um momento.";
+            break;
+        case 'auth/network-request-failed':
+            this.error = "Verifique sua conexão com a internet.";
+            break;
+        default:
+            this.error = "Erro ao fazer login. Tente novamente.";
+      }
+
+      // CRUCIAL: Força a atualização da tela IMEDIATAMENTE após definir o erro
+      this.cdr.detectChanges(); 
+
     } finally {
-      // --- CORREÇÃO AQUI ---
-      this.loading = false; // Para o loading
-      // --- FIM DA CORREÇÃO ---
+      this.loading = false;
+      // Garante que o estado de loading seja atualizado na tela
+      this.cdr.detectChanges();
     }
   }
 }

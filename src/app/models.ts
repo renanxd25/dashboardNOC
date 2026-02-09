@@ -22,7 +22,7 @@ export interface IntakeData {
 
 export interface Message {
   text?: string;
-  senderId: string;
+  senderId: any;
   timestamp: any; // Pode ser Timestamp do Firestore ou Date
   mediaUrl?: string;
   mediaType?: 'image' | 'video' | 'audio';
@@ -40,6 +40,9 @@ export interface Conversation {
   queuedAt?: any;  // Essencial: data de entrada na fila
   closedAt?: any;
   modelo?:any;
+  
+
+  sharedWith?: string[]; // Lista de emails com quem foi compartilhado
   
   lastMessage?: {
     text: string;

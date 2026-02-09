@@ -110,7 +110,7 @@
           (click)="selectConversation(convo.id!, 'active')" 
           [class.selected]="convo.id === currentSelectedId"
           [ngClass]="{ 'closed': convo.status === 'closed' }"
-          [style.border-left]="convo.attendedBy !== (auth.currentUser?.uid) ? '4px solid #f39c12' : '4px solid #2ecc71'">
+          [style.border-left]="(convo.attendedBy !== (auth.currentUser?.uid) && !isSharedWithMe(convo)) ? '4px solid #f39c12' : (isSharedWithMe(convo) ? '4px solid #9b59b6' : '4px solid #2ecc71')">
           
           <div class="item-header">
             
@@ -126,9 +126,14 @@
             <h4>{{ convo.userName }}</h4>
           </div>
 
-          @if (convo.attendedBy !== (auth.currentUser?.uid)) {
+          @if (convo.attendedBy !== (auth.currentUser?.uid) && !isSharedWithMe(convo)) {
             <small style="color: #e67e22; font-weight: bold; font-size: 0.7rem; display: block; margin-bottom: 2px;">
               <i class="fa-regular fa-eye"></i> Visualizando
+            </small>
+          }
+          @else if (isSharedWithMe(convo)) {
+            <small style="color: #9b59b6; font-weight: bold; font-size: 0.7rem; display: block; margin-bottom: 2px;">
+                <i class="fa-solid fa-users"></i> Compartilhado
             </small>
           }
           

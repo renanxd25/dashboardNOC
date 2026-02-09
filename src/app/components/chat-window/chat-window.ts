@@ -8,7 +8,8 @@ import {
   orderBy, addDoc, serverTimestamp, doc, updateDoc,
   onSnapshot, Timestamp, Unsubscribe, getDocs,
   where, 
-  getCountFromServer 
+  getCountFromServer,
+  arrayUnion 
 } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
 import { take } from 'rxjs/operators';
@@ -35,6 +36,7 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   
   messages$: Observable<Message[]> = of([]);
   currentAdminId: string | null = null;
+  currentAdminEmail: string | null = null; // NOVO: Guarda e-mail do admin logado
   currentConversation: Conversation | any = null; 
 
   private authSub: Subscription | null = null;
@@ -54,6 +56,10 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   showClosingModal = signal(false);
   isClosing = signal(false);
   
+  // NOVO: Controle do Modal de Compartilhamento
+  showShareModal = signal(false);
+  emailToShare: string = '';
+
   closingData = {
     statusComunicacao: 'SIM',
     validacaoAssertiva: 'SIM',
@@ -90,17 +96,33 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   constructor() {
     this.authSub = authState(this.auth).pipe(take(1)).subscribe(user => {
       this.currentAdminId = user ? user.uid : null;
+      this.currentAdminEmail = user ? user.email : null; // NOVO: Captura o email
     });
   }
 
-  // --- NOVO GETTER: VERIFICA SE O USUÁRIO É O DONO DO CHAT ---
+  // --- ALTERADO GETTER: VERIFICA SE O USUÁRIO É O DONO OU SE FOI COMPARTILHADO ---
   get isOwner(): boolean {
     if (!this.currentConversation || !this.currentAdminId) return false;
-    // Se o chat está ativo, só é dono quem está no campo 'attendedBy'
+    // Se o chat está ativo
     if (this.currentConversation.status === 'active') {
-        return this.currentConversation.attendedBy === this.currentAdminId;
+        // Verifica se é o dono principal
+        const isMainOwner = this.currentConversation.attendedBy === this.currentAdminId;
+        
+        // Verifica se está na lista de compartilhados
+        const isShared = this.currentConversation.sharedWith && 
+                         this.currentAdminEmail && 
+                         this.currentConversation.sharedWith.includes(this.currentAdminEmail);
+
+        return isMainOwner || !!isShared;
     }
     return false;
+  }
+
+  // NOVO: Helper para saber se é um chat compartilhado comigo
+  get isSharedWithMe(): boolean {
+    if (!this.currentConversation || !this.currentAdminEmail) return false;
+    return this.currentConversation.sharedWith && 
+           this.currentConversation.sharedWith.includes(this.currentAdminEmail);
   }
 
   get distribuidorasKeys() {
@@ -209,6 +231,7 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       this.isUploading.set(false);
       this.isIntakeExpanded.set(true); 
       this.showClosingModal.set(false);
+      this.showShareModal.set(false); // NOVO
 
     } else if (!this.conversationId) {
       this.currentConversation = null;
@@ -293,8 +316,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
             autoMessageText += `Relé: ${data.rele } \n`;
         }
         autoMessageText += `SE/AL: ${data?.subestacao || ''} - ${data?.alimentador || ''} \n`; 
-        //autoMessageText += `Substação: ${data?.subestacao || ''}\n`; 
-        //autoMessageText += `Alimentador: ${data?.alimentador || ''}\n`; 
         autoMessageText += `Componente: ${data.componente}\n`;
         let comm = data.modoComunicacao;
         if (comm === 'GPRS' && data.tipoGprs) {
@@ -304,8 +325,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         autoMessageText += `IP: ${data.ip}\n`;
         autoMessageText += `Porta: ${data.porta}\n`;
         autoMessageText += `Atendimento: ${data.opcaoAtendimento}\n`;
-
-
 
       }
 
@@ -505,6 +524,47 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   closeClosingModal() {
     this.showClosingModal.set(false);
   }
+
+  // --- NOVAS FUNÇÕES: COMPARTILHAR ATENDIMENTO ---
+  openShareModal() {
+    this.emailToShare = '';
+    this.showShareModal.set(true);
+  }
+
+  closeShareModal() {
+    this.showShareModal.set(false);
+    this.emailToShare = '';
+  }
+
+  async confirmShare() {
+    if (!this.conversationId || !this.emailToShare) return;
+
+    try {
+      const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
+      
+      // Adiciona o email ao array sharedWith usando arrayUnion (evita duplicatas)
+      await updateDoc(convDocRef, {
+        sharedWith: arrayUnion(this.emailToShare)
+      });
+
+      // Feedback visual (Opcional: Mandar uma mensagem no chat avisando)
+      const messagesCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
+      const msg: Message = {
+        text: `🔒 Atendimento compartilhado com: ${this.emailToShare}`,
+        senderId: this.currentAdminId || 'system',
+        timestamp: serverTimestamp() as Timestamp
+      };
+      await addDoc(messagesCollection, msg);
+
+      alert(`Atendimento compartilhado com sucesso com ${this.emailToShare}`);
+      this.closeShareModal();
+
+    } catch (error) {
+      console.error("Erro ao compartilhar:", error);
+      alert("Erro ao compartilhar atendimento. Verifique se o e-mail é válido.");
+    }
+  }
+  // ----------------------------------------------
 
   async confirmEndChat() {
     if (!this.conversationId || !this.currentAdminId) return;

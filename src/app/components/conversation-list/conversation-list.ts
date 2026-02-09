@@ -8,8 +8,8 @@ import {
   collection, 
   collectionData, 
   query, 
-  orderBy,
-  where,
+  orderBy, 
+  where, 
   getDocs, 
   Timestamp
 } from '@angular/fire/firestore';
@@ -42,6 +42,8 @@ export class ConversationList implements OnInit {
 
   queuedConversations$!: Observable<Conversation[]>;
   activeConversations$!: Observable<Conversation[]>;
+
+  currentUserEmail: string | null = null;
 
   // Filtro de Serviço
   filterSubject = new BehaviorSubject<string>(''); 
@@ -79,7 +81,13 @@ export class ConversationList implements OnInit {
   ngOnInit() {
     // Busca a fila bruta
     const rawQueued$ = authState(this.auth).pipe(
-      switchMap(user => user ? this.getQueuedConversations() : of([]))
+      switchMap(user => {
+          if (user) {
+              this.currentUserEmail = user.email;
+              return this.getQueuedConversations();
+          }
+          return of([]);
+      })
     );
 
     this.queuedConversations$ = combineLatest([
@@ -116,6 +124,11 @@ export class ConversationList implements OnInit {
     );
   }
   
+  isSharedWithMe(convo: any): boolean {
+    if (!this.currentUserEmail) return false;
+    return convo.sharedWith && convo.sharedWith.includes(this.currentUserEmail);
+  }
+
   onFilterChange(newValue: string) {
     this.selectedFilter = newValue;
     this.filterSubject.next(newValue);
@@ -168,20 +181,25 @@ export class ConversationList implements OnInit {
     this.conversationSelected.emit(id);
   }
 
+  // --- LÓGICA DE EXPORTAÇÃO REVISADA ---
+
   private formatDataForExport(snapshot: any) {
-    const data = snapshot.docs
-      .map((doc: any) => doc.data() as Conversation)
-      .filter((convo: Conversation) => convo.intakeData); 
+    // CORREÇÃO: Removemos o .filter() que excluía dados sem intakeData.
+    // Agora mapeamos TUDO que vem do banco.
+    const data = snapshot.docs.map((doc: any) => {
+        return { id: doc.id, ...doc.data() } as Conversation;
+    });
 
     if (data.length === 0) {
-      alert("Nenhum dado de cliente encontrado para exportar.");
+      alert("Nenhum dado encontrado para exportar.");
       return null;
     }
 
-    return data.map((convo: Conversation) => {
+    return data.map((convo: Conversation | any) => {
       let tempoAtendimento = 'Não calculado';
-      let horaFinalizacaoFormatada = '-'; // Variável para armazenar a hora formatada
+      let horaFinalizacaoFormatada = '-';
 
+      // Lógica de tempo
       if (convo.status !== 'closed') {
         tempoAtendimento = 'Em Andamento';
       } 
@@ -193,42 +211,46 @@ export class ConversationList implements OnInit {
             const durationMs = end.getTime() - start.getTime();
             tempoAtendimento = formatDuration(durationMs);
             
-            // Formatando a hora de finalização
             horaFinalizacaoFormatada = end.toLocaleTimeString('pt-BR');
           } else {
             tempoAtendimento = 'N/A (Sem registro de início)';
-            // Tenta formatar a hora final mesmo sem hora de início, se existir closedAt
             const end: Date = convo.closedAt.toDate ? convo.closedAt.toDate() : new Date(convo.closedAt);
             horaFinalizacaoFormatada = end.toLocaleTimeString('pt-BR');
           }
       }
       
-      let comunicacaoDisplay = convo.intakeData?.modoComunicacao || '';
-      if (comunicacaoDisplay === 'GPRS' && convo.intakeData?.tipoGprs) {
-        comunicacaoDisplay = `GPRS - ${convo.intakeData.tipoGprs}`;
+      // Tratamento seguro de IntakeData (para não quebrar se for null)
+      const intake = convo.intakeData || {};
+
+      let comunicacaoDisplay = intake.modoComunicacao || '';
+      if (comunicacaoDisplay === 'GPRS' && intake.tipoGprs) {
+        comunicacaoDisplay = `GPRS - ${intake.tipoGprs}`;
       }
 
-      const feedback = (convo as any).closingFeedback || {}; 
-      const emailAtendente = (convo as any).attendedByEmail || 'Não registrado';
+      const feedback = convo.closingFeedback || {}; 
+      const emailAtendente = convo.attendedByEmail || 'Não registrado';
       
       return {
-        'Nome': convo.intakeData?.nome?.toUpperCase() || '',
-        'Telefone': convo.intakeData?.telefone || 'N/D', 
+        'ID do Atendimento': convo.id, // ID ÚNICO: Garante que você veja duplicatas de nome como linhas diferentes
+        'Status Atual': convo.status?.toUpperCase() || 'DESCONHECIDO',
+        'Nome': (intake.nome || convo.userName || 'CLIENTE SEM NOME').toUpperCase(),
+        'Telefone': intake.telefone || 'N/D', 
         'Email Atendente': emailAtendente,
-        'Distribuidora': convo.intakeData?.distribuidora?.toUpperCase() || '',
-        'Regional': convo.intakeData?.regional?.toUpperCase() || '',
-        'Atendimento': convo.intakeData?.opcaoAtendimento?.toUpperCase() || '',
-        'Subestação': convo.intakeData?.subestacao?.toUpperCase() || '',
-        'Alimentador': convo.intakeData?.alimentador?.toUpperCase() || '',
-        'Componente': convo.intakeData?.componente?.toUpperCase() || '',
-        'Classe': convo.intakeData?.classeComponente?.toUpperCase() || '',
-        'Modelo': convo.intakeData?.modelo?.toUpperCase() || '',
+        'Distribuidora': intake.distribuidora?.toUpperCase() || 'N/D',
+        'Regional': intake.regional?.toUpperCase() || 'N/D',
+        'Atendimento': intake.opcaoAtendimento?.toUpperCase() || 'N/D',
+        'Subestação': intake.subestacao?.toUpperCase() || '',
+        'Alimentador': intake.alimentador?.toUpperCase() || '',
+        'Componente': intake.componente?.toUpperCase() || '',
+        'Classe': intake.classeComponente?.toUpperCase() || '',
+        'Modelo': intake.modelo?.toUpperCase() || '',
         'Comunicação': comunicacaoDisplay.toUpperCase(), 
-        'IP': convo.intakeData?.ip || '', 
-        'Porta': convo.intakeData?.porta || '', 
-        'Data Atendimento': convo.queuedAt?.toDate().toLocaleDateString('pt-BR') || 'Data não registrada',
-        'Hora Início': convo.startedAt?.toDate().toLocaleTimeString('pt-BR') || '-',
-        'Hora Finalização': horaFinalizacaoFormatada, // <<< NOVA COLUNA AQUI
+        'IP': intake.ip || '', 
+        'Porta': intake.porta || '', 
+        'Data Criação': convo.queuedAt?.toDate ? convo.queuedAt.toDate().toLocaleDateString('pt-BR') : '',
+        'Data Início': convo.startedAt?.toDate ? convo.startedAt.toDate().toLocaleDateString('pt-BR') : '',
+        'Hora Início': convo.startedAt?.toDate ? convo.startedAt.toDate().toLocaleTimeString('pt-BR') : '-',
+        'Hora Finalização': horaFinalizacaoFormatada,
         'Tempo Atendimento': tempoAtendimento,
         'Status Comunicação (Final)': feedback.statusComunicacao || '-',
         'Validação Assertiva': feedback.validacaoAssertiva || '-',
@@ -243,10 +265,15 @@ export class ConversationList implements OnInit {
     this.isLoading.set(true);
     try {
       const convCollection = collection(this.firestore, 'conversations');
-      const snapshot = await getDocs(convCollection);
+      // CORREÇÃO: Adicionado orderBy('startedAt', 'desc') para garantir ordem cronológica (mais recente primeiro)
+      // Trazemos TODOS os documentos da coleção.
+      const q = query(convCollection, orderBy('startedAt', 'desc'));
+      
+      const snapshot = await getDocs(q);
       const dataToExport = this.formatDataForExport(snapshot);
+      
       if (dataToExport) {
-        this.exportService.exportToExcel(dataToExport, 'todos_os_clientes');
+        this.exportService.exportToExcel(dataToExport, 'historico_completo_atendimentos');
       }
     } catch (err) {
       console.error(err);
@@ -264,22 +291,29 @@ export class ConversationList implements OnInit {
       const startTS = Timestamp.fromDate(new Date(startDate + "T00:00:00"));
       const endTS = Timestamp.fromDate(new Date(endDate + "T23:59:59"));
       
+      // CORREÇÃO: Filtrar baseado na data de INÍCIO do atendimento (startedAt) ou criação (queuedAt).
+      // Usando startedAt para pegar atendimentos efetivamente realizados no período.
+      // Se preferir data de entrada na fila, troque 'startedAt' por 'queuedAt'.
       const q = query(
         collection(this.firestore, 'conversations'),
-        where('queuedAt', '>=', startTS),
-        where('queuedAt', '<=', endTS)
+        where('startedAt', '>=', startTS),
+        where('startedAt', '<=', endTS),
+        orderBy('startedAt', 'desc') // Ordenar pelo mais recente
       );
       
       const snapshot = await getDocs(q);
       const dataToExport = this.formatDataForExport(snapshot);
       
       if (dataToExport) {
-        const fileName = `clientes_de_${startDate}_a_${endDate}`;
+        const fileName = `atendimentos_de_${startDate}_a_${endDate}`;
         this.exportService.exportToExcel(dataToExport, fileName);
+      } else {
+          // Feedback se não houver nada no período
+          alert("Nenhum atendimento encontrado neste período.");
       }
     } catch (err) {
-      console.error(err);
-      alert("Erro ao exportar. Verifique o console.");
+      console.error("Erro na exportação por período:", err);
+      alert("Erro ao exportar. Verifique se o índice 'startedAt' foi criado no Firestore se der erro de index.");
     } finally {
       this.isLoading.set(false);
     }
