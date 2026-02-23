@@ -298,6 +298,7 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       if (this.currentConversation?.intakeData) {
         const data = this.currentConversation.intakeData;
         autoMessageText += `\n\nSegue abaixo a confirmação dos dados:\n`;
+        autoMessageText += `Atendimento: ${data.opcaoAtendimento}\n`;
         autoMessageText += `Nome: ${data.nome}\n`;
         autoMessageText += `Telefone: ${data.telefone || 'N/D'}\n`;
         autoMessageText += `Distribuidora: ${data.distribuidora}\n`;
@@ -307,7 +308,9 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         if (data.rele !== 'null' && data.rele !== null) {
             autoMessageText += `Relé: ${data.rele } \n`;
         }
-        autoMessageText += `SE/AL: ${data?.subestacao || ''} - ${data?.alimentador || ''} \n`; 
+        autoMessageText += `SE/AL: ${data?.subestacao || ''} - ${data?.alimentador || ''} \n`;
+        autoMessageText += `SE: ${data?.subestacao || ''}\n`;  
+        autoMessageText += `AL: ${data?.alimentador || ''}\n`;  
         autoMessageText += `Componente: ${data.componente}\n`;
         let comm = data.modoComunicacao;
         if (comm === 'GPRS' && data.tipoGprs) {
@@ -316,8 +319,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         autoMessageText += `Comunicação: ${comm}\n`;
         autoMessageText += `IP: ${data.ip}\n`;
         autoMessageText += `Porta: ${data.porta}\n`;
-        autoMessageText += `Atendimento: ${data.opcaoAtendimento}\n`;
-
       }
 
       const newMessage: Message = {
