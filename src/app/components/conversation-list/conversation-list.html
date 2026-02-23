@@ -1,5 +1,5 @@
 <div class="export-section">
-  <label style="font-size: 0.85rem; font-weight: bold; color: #FFF; display: block; margin-bottom: 5px;">
+  <label style="font-size: 0.85rem; font-weight: bold; color: #FFF; display: block; margin-bottom: 5px; text-transform: uppercase;">
           Exportar todos os atendimentos
   </label>
   <button (click)="exportAll()" [disabled]="isLoading()">
@@ -7,7 +7,7 @@
   </button>
 
   <div class="date-range">
-    <h5>Exportar por Período</h5>
+    <h5 style=" text-transform: uppercase;">Exportar por Período</h5>
     <div class="date-inputs">
       <div>
         <label for="startDate">De:</label>
@@ -29,7 +29,7 @@
   <div style="display: flex; gap: 10px; flex-wrap: wrap;">
     
     <div style="flex: 2; min-width: 200px;">
-      <label style="font-size: 0.85rem; font-weight: bold; color: #FFF; display: block; margin-bottom: 5px;">
+      <label style="font-size: 0.85rem; font-weight: bold; color: #FFF; display: block; margin-bottom: 5px; text-transform: uppercase;">
         Filtrar por Tipo:
       </label>
       <select 
@@ -48,7 +48,7 @@
     </div>
 
     <div style="flex: 1; min-width: 120px;">
-      <label style="font-size: 0.85rem; font-weight: bold; color: #FFF; display: block; margin-bottom: 5px;">
+      <label style="font-size: 0.85rem; font-weight: bold; color: #FFF; display: block; margin-bottom: 5px; text-transform: uppercase;">
         Distribuidora:
       </label>
       <select 
@@ -67,7 +67,7 @@
 
 <div class="lists-wrapper">
   
-  <h4 class="list-header">Fila de Atendimento</h4>
+  <h4 class="list-header" style="text-transform: uppercase;">Fila de Atendimento</h4>
   
   @if (queuedConversations$ | async; as conversations) {
     @if (conversations.length === 0) {
@@ -98,7 +98,7 @@
   }
 
 
-  <h4 class="list-header">Atendimentos Inicializados</h4>
+  <h4 class="list-header" style="text-transform: uppercase;">Atendimentos Inicializados</h4>
   @if (activeConversations$ | async; as conversations) {
     @if (conversations.length === 0) {
       <div class="empty-list-label">Nenhum atendimento ativo.</div>

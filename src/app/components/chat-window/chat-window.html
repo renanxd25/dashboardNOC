@@ -120,10 +120,7 @@
 
             <li><strong>Modelo:</strong> 
             {{ currentConversation?.intakeData?.modelo || currentConversation?.intakeData?.modeloControle }}  
-            @if(currentConversation?.intakeData?.rele) {
-            - {{ currentConversation?.intakeData?.rele }}
-           }
-            
+          
             @if(currentConversation?.intakeData?.rele) {
             <li class="relemagin"> <span ><strong>Relé:</strong> {{ currentConversation?.intakeData?.rele }}</span></li>
             }
@@ -468,7 +465,7 @@
             name="shareEmail" 
             required 
             placeholder="exemplo@empresa.com"
-            style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc;">
+            style="width: 95%; padding: 10px; border-radius: 4px; border: 1px solid #ccc;">
         </div>
 
         <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px;">

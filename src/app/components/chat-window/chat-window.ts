@@ -36,7 +36,7 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   
   messages$: Observable<Message[]> = of([]);
   currentAdminId: string | null = null;
-  currentAdminEmail: string | null = null; // NOVO: Guarda e-mail do admin logado
+  currentAdminEmail: string | null = null;
   currentConversation: Conversation | any = null; 
 
   private authSub: Subscription | null = null;
@@ -56,7 +56,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   showClosingModal = signal(false);
   isClosing = signal(false);
   
-  // NOVO: Controle do Modal de Compartilhamento
   showShareModal = signal(false);
   emailToShare: string = '';
 
@@ -96,19 +95,14 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   constructor() {
     this.authSub = authState(this.auth).pipe(take(1)).subscribe(user => {
       this.currentAdminId = user ? user.uid : null;
-      this.currentAdminEmail = user ? user.email : null; // NOVO: Captura o email
+      this.currentAdminEmail = user ? user.email : null;
     });
   }
 
-  // --- ALTERADO GETTER: VERIFICA SE O USUÁRIO É O DONO OU SE FOI COMPARTILHADO ---
   get isOwner(): boolean {
     if (!this.currentConversation || !this.currentAdminId) return false;
-    // Se o chat está ativo
     if (this.currentConversation.status === 'active') {
-        // Verifica se é o dono principal
         const isMainOwner = this.currentConversation.attendedBy === this.currentAdminId;
-        
-        // Verifica se está na lista de compartilhados
         const isShared = this.currentConversation.sharedWith && 
                          this.currentAdminEmail && 
                          this.currentConversation.sharedWith.includes(this.currentAdminEmail);
@@ -118,7 +112,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     return false;
   }
 
-  // NOVO: Helper para saber se é um chat compartilhado comigo
   get isSharedWithMe(): boolean {
     if (!this.currentConversation || !this.currentAdminEmail) return false;
     return this.currentConversation.sharedWith && 
@@ -231,7 +224,7 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       this.isUploading.set(false);
       this.isIntakeExpanded.set(true); 
       this.showClosingModal.set(false);
-      this.showShareModal.set(false); // NOVO
+      this.showShareModal.set(false); 
 
     } else if (!this.conversationId) {
       this.currentConversation = null;
@@ -268,7 +261,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   async startAttendance() {
     if (!this.conversationId || !this.currentAdminId) return;
 
-    // Proteção extra: Se já tem dono e não sou eu
     if (this.currentConversation?.attendedBy && this.currentConversation.attendedBy !== this.currentAdminId) {
         alert("Este atendimento já está sendo realizado por outro atendente.");
         return;
@@ -340,6 +332,8 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         status: 'active',
         attendedBy: this.currentAdminId,
         attendedByEmail: adminEmail, 
+        sharedWith: [], 
+        sharedWithHistory: [], // <--- IMPLEMENTAÇÃO AQUI: Garante que histórico passado seja limpo do root
         startedAt: serverTimestamp(),
         unreadByDashboard: false,
         warningSent: false, 
@@ -525,7 +519,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     this.showClosingModal.set(false);
   }
 
-  // --- NOVAS FUNÇÕES: COMPARTILHAR ATENDIMENTO ---
   openShareModal() {
     this.emailToShare = '';
     this.showShareModal.set(true);
@@ -542,12 +535,11 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
     try {
       const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
       
-      // Adiciona o email ao array sharedWith usando arrayUnion (evita duplicatas)
       await updateDoc(convDocRef, {
-        sharedWith: arrayUnion(this.emailToShare)
+        sharedWith: arrayUnion(this.emailToShare),
+        sharedWithHistory: arrayUnion(this.emailToShare)
       });
 
-      // Feedback visual (Opcional: Mandar uma mensagem no chat avisando)
       const messagesCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
       const msg: Message = {
         text: `🔒 Atendimento compartilhado com: ${this.emailToShare}`,
@@ -564,7 +556,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       alert("Erro ao compartilhar atendimento. Verifique se o e-mail é válido.");
     }
   }
-  // ----------------------------------------------
 
   async confirmEndChat() {
     if (!this.conversationId || !this.currentAdminId) return;
@@ -575,7 +566,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
       const msgsCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
       const snapshot = await getDocs(msgsCollection);
 
-      // NOTA: Recomendo remover essa parte de deleção se for manter histórico
       const deletePromises: Promise<void>[] = [];
       snapshot.forEach(docSnap => {
         const msg = docSnap.data() as Message;
@@ -598,19 +588,31 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
 
       const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
       
+      const historyEntry = {
+        isHistory: true,
+        startedAt: this.currentConversation.startedAt || null,
+        closedAt: Timestamp.now(), 
+        attendedByEmail: this.currentConversation.attendedByEmail || this.currentAdminEmail,
+        sharedWithHistory: this.currentConversation.sharedWithHistory || this.currentConversation.sharedWith || [],
+        intakeData: this.currentConversation.intakeData ? { ...this.currentConversation.intakeData } : {},
+        closingFeedback: { ...this.closingData }
+      };
+
       await updateDoc(convDocRef, {
         status: 'closed',
         attendedBy: null, 
+        sharedWith: [], 
+        sharedWithHistory: [], // <--- IMPLEMENTAÇÃO AQUI: Remove o rastro do root após salvar no historyEntry
         closedAt: serverTimestamp(), 
         lastMessage: { text: endMessageText, timestamp: serverTimestamp() },
         unreadByDashboard: false,
-        
         closingFeedback: {
           statusComunicacao: this.closingData.statusComunicacao,
           validacaoAssertiva: this.closingData.validacaoAssertiva,
           obsProblema: this.closingData.obsProblema || 'Não informado',
           obsSolucao: this.closingData.obsSolucao || 'Não informado'
-        }
+        },
+        history: arrayUnion(historyEntry) 
       });
 
       this.isEditing.set(false); 
@@ -626,7 +628,6 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
 
   toggleEdit(): void {
     if (!this.currentConversation?.intakeData) return;
-    // ALTERAÇÃO: Apenas permitir edição se for dono
     if (!this.isOwner) return;
 
     if (this.isEditing()) {
