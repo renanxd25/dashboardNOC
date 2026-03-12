@@ -3,23 +3,23 @@
           Exportar todos os atendimentos
   </label>
   <button (click)="exportAll()" [disabled]="isLoading()">
-    {{ isLoading() ? 'Exportando...' : 'Exportar Todos' }}
+    {{ isLoading() ? 'Exportando...' : 'EXPORTAR TODOS' }}
   </button>
 
   <div class="date-range">
     <h5 style=" text-transform: uppercase;">Exportar por Período</h5>
     <div class="date-inputs">
       <div>
-        <label for="startDate">De:</label>
+        <label for="startDate">DE:</label>
         <input type="date" #startDate>
       </div>
       <div>
-        <label for="endDate">Até:</label>
+        <label for="endDate">ATÉ:</label>
         <input type="date" #endDate>
       </div>
     </div>
     <button (click)="exportByDateRange(startDate.value, endDate.value)" [disabled]="isLoading()">
-      {{ isLoading() ? 'Exportando...' : 'Exportar Período' }}
+      {{ isLoading() ? 'Exportando...' : 'EXPORTAR PERÍODO' }}
     </button>
   </div>
 </div>

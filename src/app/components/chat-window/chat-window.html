@@ -119,11 +119,8 @@
             <li><strong>SE/AL:</strong> {{ currentConversation?.intakeData?.subestacao }} / {{ currentConversation?.intakeData?.alimentador }}</li>
 
             <li><strong>Modelo:</strong> 
-            {{ currentConversation?.intakeData?.modelo || currentConversation?.intakeData?.modeloControle }}  
-          
-            @if(currentConversation?.intakeData?.rele) {
-            <li class="relemagin"> <span ><strong>Relé:</strong> {{ currentConversation?.intakeData?.rele }}</span></li>
-            }
+            {{ currentConversation?.intakeData?.modelo || currentConversation?.intakeData?.modeloControle }} - {{ currentConversation?.intakeData?.rele }} 
+        
             </li>
           </ul>
         }

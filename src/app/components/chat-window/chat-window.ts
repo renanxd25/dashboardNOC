@@ -308,7 +308,7 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
         if (data.rele !== 'null' && data.rele !== null) {
             autoMessageText += `Relé: ${data.rele } \n`;
         }
-        autoMessageText += `SE/AL: ${data?.subestacao || ''} - ${data?.alimentador || ''} \n`;
+        //autoMessageText += `SE/AL: ${data?.subestacao || ''} - ${data?.alimentador || ''} \n`;
         autoMessageText += `SE: ${data?.subestacao || ''}\n`;  
         autoMessageText += `AL: ${data?.alimentador || ''}\n`;  
         autoMessageText += `Componente: ${data.componente}\n`;
