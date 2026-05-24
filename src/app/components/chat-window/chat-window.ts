@@ -83,11 +83,11 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   };
 
   regionalsByState: { [key: string]: string[] } = {
-    'AL': ['CENTRO', 'LESTE', 'OESTE'],
-    'AP': ['AP'],
+    'AL': [ 'LESTE', 'OESTE'],
+    'AP': ['METROPOLITANA'],
     'GO': ['ANÁPOLIS', 'FORMOSA', 'GOIÂNIA', 'IPORÁ', 'LUZILÂNDIA', 'METROPOLITANA', 'MONTE BELOS', 'MORRINHOS', 'RIO VERDE', 'URUAÇU'],
     'MA': ['CENTRO', 'LESTE', 'NOROESTE', 'NORTE', 'SUL'],
-    'PA': ['CENTRO', 'LESTE', 'NORDESTE', 'NOROESTE', 'NORTE', 'OESTE', 'SUL'],
+    'PA': ['CENTRO', 'NORDESTE', 'NORTE', 'OESTE', 'SUL'],
     'PI': ['CENTRO-SUL', 'METROPOLITANA', 'NORTE', 'SUL'],
     'RS': ['CAMPANHA', 'CARBONIFERA', 'CENTRO', 'LITORAL NORTE', 'LITORAL SUL', 'METROPOLITANA', 'NORDESTE', 'NORTE', 'PORTO ALEGRE', 'SUL']
   };
@@ -379,15 +379,68 @@ export class ChatWindow implements OnChanges, OnDestroy, AfterViewChecked {
   async sendAutoClosingMessage() {
     if (!this.conversationId || !this.currentAdminId) return;
 
-    const messageText = "O atendimento será encerrado, por favor, certifique que todas as mídias necessárias para você tenham sido baixadas em seu dispositivo.";
+    const messageText = "Todas as mídias necessárias já foram baixadas?"
+    
+    const messageText2 = "Obrigado pelo seu contato! 🛰️";
+    const messageText3 = "O seu atendimento será previamente encerrado. Certifique que todas as mídias necessárias para você tenham sido baixadas em seu dispositivo.";
 
     const newMessage: Message = {
       text: messageText,
       senderId: this.currentAdminId,
       timestamp: serverTimestamp() as Timestamp
     };
+     
+    const newMessage2: Message = {
+      text: messageText2,
+      senderId: this.currentAdminId,
+      timestamp: serverTimestamp() as Timestamp
+    };
+
+     const newMessage3: Message = {
+      text: messageText3,
+      senderId: this.currentAdminId,
+      timestamp: serverTimestamp() as Timestamp
+    };
 
     try {
+      const messagesCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
+      await addDoc(messagesCollection, newMessage2);
+
+      const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
+      
+      await updateDoc(convDocRef, {
+        lastMessage: { text: messageText, timestamp: serverTimestamp() },
+        status: 'active',
+        unreadByDashboard: false,
+        warningSent: true 
+      });
+
+      this.shouldScrollToBottom = true;
+    } catch (error) {
+      console.error("Erro ao enviar mensagem automática:", error);
+      alert("Erro ao enviar aviso.");
+    }
+
+        try {
+      const messagesCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
+      await addDoc(messagesCollection, newMessage3);
+
+      const convDocRef = doc(this.firestore, `conversations/${this.conversationId}`);
+      
+      await updateDoc(convDocRef, {
+        lastMessage: { text: messageText, timestamp: serverTimestamp() },
+        status: 'active',
+        unreadByDashboard: false,
+        warningSent: true 
+      });
+
+      this.shouldScrollToBottom = true;
+    } catch (error) {
+      console.error("Erro ao enviar mensagem automática:", error);
+      alert("Erro ao enviar aviso.");
+    }
+
+        try {
       const messagesCollection = collection(this.firestore, `conversations/${this.conversationId}/messages`);
       await addDoc(messagesCollection, newMessage);
 
